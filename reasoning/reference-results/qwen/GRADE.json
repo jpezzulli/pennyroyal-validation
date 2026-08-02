@@ -1,0 +1,73 @@
+{
+  "candidate_id": "candidate-7f3a",
+  "qualitative_scores_locked_before_operational_join": true,
+  "raw_dimension_weighted_score": 92.14,
+  "raw_case_weighted_score": 90.04,
+  "final_case_weighted_score": 82.84,
+  "dimension_scores": {
+    "correctness": 95,
+    "evidence_discipline": 84,
+    "contradiction_detection": 100,
+    "constraint_preservation": 96,
+    "technical_reasoning": 94,
+    "unsupported_assumptions": 98,
+    "confidence_calibration": 82,
+    "revision_quality": 100,
+    "loop_behavior": 69,
+    "final_answer_usability": 82
+  },
+  "cases": [
+    {
+      "case_id": "C1",
+      "raw_score": 98,
+      "final_score": 98,
+      "finding": "Correct PMTU black-hole diagnosis, size boundary, capture reconciliation, alternatives, correction, and verification."
+    },
+    {
+      "case_id": "C2",
+      "raw_score": 94,
+      "final_score": 94,
+      "finding": "Correct authoritative sequence ordering and unknown root cause; minor unsupported speculation appeared in the discussion of unknowns."
+    },
+    {
+      "case_id": "C3",
+      "raw_score": 98,
+      "final_score": 98,
+      "finding": "Correct integer optimum, complete constraint checks, and correct proof that no plan survives the reduced A capacity."
+    },
+    {
+      "case_id": "C4",
+      "raw_score": 78,
+      "final_score": 78,
+      "finding": "Correct schedule, lower bound, and rejection of X, but reasoning entered a long repeated self-check cycle before delivering a duplicated final answer."
+    },
+    {
+      "case_id": "C5",
+      "raw_score": 65,
+      "final_score": 20,
+      "finding": "The reasoning identified the required sound ownership and locking design, including persistence of invalid and missing-account outcomes, but entered a confirmed hard loop and produced no visible final answer.",
+      "fatal_condition": "confirmed_reasoning_loop",
+      "fatal_cap": 20
+    },
+    {
+      "case_id": "C6",
+      "raw_score": 100,
+      "final_score": 100,
+      "finding": "Correctly blocks release and applies exact-lot test ownership while rejecting all distractions."
+    },
+    {
+      "case_id": "C7",
+      "raw_score": 100,
+      "final_score": 100,
+      "finding": "Correct non-identifiability result, sharp Frechet bounds, and explicitly conditional independence-only estimate."
+    },
+    {
+      "case_id": "C8",
+      "raw_score": 100,
+      "final_score": 100,
+      "finding": "Correct initial ambiguity and containment, followed by a complete recalculation, explicit retraction, preserved facts, and correct replacement containment."
+    }
+  ],
+  "fatal_cases": 1,
+  "fatal_case_ids": ["C5"]
+}

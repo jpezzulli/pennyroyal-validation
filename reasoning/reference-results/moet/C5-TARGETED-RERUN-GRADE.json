@@ -1,0 +1,28 @@
+{
+  "case_id": "C5",
+  "candidate_id": "candidate-b19d",
+  "run_id": "targeted-c5",
+  "qualitative_scores_locked_before_operational_unblinding": true,
+  "raw_case_score": 86,
+  "fatal_condition_triggered": true,
+  "fatal_condition": "The proposed repair retains inconsistent request ownership because invalid-amount, identical-account, and missing-account terminal outcomes are returned without atomically persisting request_id, request fingerprint, and result.",
+  "fatal_cap": 35,
+  "final_case_score": 35,
+  "stop_go_result": "STOP",
+  "qwen_authorized": false,
+  "findings": {
+    "correct": [
+      "Diagnoses the unsafe outside-transaction idempotency lookup.",
+      "Requires request fingerprint comparison on fast and unique-conflict paths.",
+      "Persists insufficient and successful outcomes.",
+      "Validates positive amounts, distinct IDs, and account existence.",
+      "Locks both accounts in canonical account-ID order.",
+      "Explains unique-conflict rollback behavior and equal balance updates."
+    ],
+    "fatal_omission": [
+      "Invalid amount and identical-account checks return before any ledger claim.",
+      "Missing-account handling returns without persisting the terminal outcome.",
+      "Therefore every outcome is not idempotent and a later reuse can change outcome or parameters."
+    ]
+  }
+}
