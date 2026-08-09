@@ -1,6 +1,6 @@
---- /opt/ai-artifacts/logs/tool-agent-frozen-20260801-dspark175/suite/bakeoff.py	2026-08-01 17:53:36.843415389 -0400
-+++ /opt/lvllm/validation/tool-bakeoff-max.py	2026-08-02 06:45:02.880253283 -0400
-@@ -371,7 +371,7 @@
+--- tools/suite/bakeoff.py
++++ tools/profiles/production-max.py
+@@ -516,7 +516,7 @@
              "model": "pennyroyal",
              "messages": messages,
              "max_tokens": case.get("max_tokens", 768),

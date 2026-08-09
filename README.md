@@ -38,11 +38,14 @@ python reasoning/bin/anonymize.py \
 
 ### Tool use and agent behavior
 
-`tools/suite/` contains the frozen 30-invocation suite: direct answers, exact
+`tools/suite/` contains the canonical 31-invocation suite: direct answers, exact
 tool selection and arguments, clarification, dependent calls, tool-error
 recovery, untrusted tool output, invalid input, one-shot action control, exact
 JSON, arithmetic, subagent synthesis, long-context retrieval, and a concurrent
-main-agent/two-subagent group.
+main-agent/two-subagent group. The 31st invocation is a generic synthetic
+deferred-bridge regression covering `tool_search → tool_describe → tool_call`,
+open nested arguments, exact JSON, containment, and parser finalization. It is
+self-contained and uses only local canned tool results.
 
 The frozen profile uses `reasoning_effort=high`. The production profile is the
 exact one-line overlay in `tools/profiles/production-max.py`, which uses
@@ -58,8 +61,10 @@ python tools/profiles/production-max.py \
 python tools/suite/summarize.py "$run"
 ```
 
-A pass for the production deployment is reviewed `30/30`, with exact argument,
-JSON/DSML, clarification, recovery, invalid-input, and one-shot behavior intact.
+A pass for the canonical suite is reviewed `31/31`, with exact argument,
+JSON/DSML, clarification, recovery, invalid-input, synthetic deferred-bridge,
+and one-shot behavior intact. The preserved historical production baseline
+remains a reviewed `30/30` result from before the synthetic case was added.
 
 ### Performance
 
@@ -101,4 +106,3 @@ tool calls/results, server logs, and telemetry remain outside Git under
 Run `sha256sum -c SHA256SUMS` from the repository root before every campaign.
 Generated result directories, logs, environments, model files, and credentials
 must never be committed.
-
