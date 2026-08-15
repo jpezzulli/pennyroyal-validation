@@ -4,6 +4,7 @@ import concurrent.futures
 import json
 import re
 import subprocess
+import sys
 import time
 import urllib.error
 import urllib.request
@@ -814,13 +815,55 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--runtime", required=True)
     parser.add_argument("--output-dir", required=True)
-    parser.add_argument("--deadline", type=float, required=True)
+    parser.add_argument("--deadline", type=float)
     parser.add_argument("--repeats", type=int, default=2)
     parser.add_argument("--only-case")
     parser.add_argument("--only-case-repeats", type=int, default=1)
+    parser.add_argument(
+        "--benchmarks",
+        nargs="+",
+        choices=(
+            "prefill-64k",
+            "prefill-490k-needle",
+            "decode-1x",
+            "decode-4x",
+            "all",
+        ),
+    )
+    parser.add_argument("--benchmark-only", action="store_true")
+    parser.add_argument("--tokenizer-path")
+    parser.add_argument("--benchmark-reasoning-effort", default="xhigh")
+    parser.add_argument("--benchmark-max-tokens", type=int, default=32768)
     args = parser.parse_args()
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
+    if args.benchmarks:
+        if not args.tokenizer_path:
+            parser.error("--tokenizer-path is required with --benchmarks")
+        benchmark_script = Path(__file__).parents[1] / "suite" / "openai_benchmarks.py"
+        subprocess.run(
+            [
+                sys.executable,
+                str(benchmark_script),
+                "--output-dir",
+                str(output_dir / "performance"),
+                "--tokenizer-path",
+                args.tokenizer_path,
+                "--reasoning-effort",
+                args.benchmark_reasoning_effort,
+                "--max-tokens",
+                str(args.benchmark_max_tokens),
+                "--tests",
+                *args.benchmarks,
+            ],
+            check=True,
+        )
+        if args.benchmark_only:
+            return 0
+    elif args.benchmark_only:
+        parser.error("--benchmark-only requires --benchmarks")
+    if args.deadline is None:
+        parser.error("--deadline is required when running the tool suite")
     results_path = output_dir / "results.jsonl"
     events_path = output_dir / "events.jsonl"
 

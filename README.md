@@ -73,6 +73,26 @@ JSON/DSML, clarification, recovery, invalid-input, synthetic deferred-bridge,
 and one-shot behavior intact. The preserved historical production baseline
 remains a reviewed `30/30` result from before the synthetic case was added.
 
+The tool runners also expose reusable, opt-in OpenAI chat-completions
+performance tests. They do not run during an ordinary 31-invocation quality
+suite. Available selections are prefill-64k, prefill-490k-needle, decode-1x,
+decode-4x, and all. Decode uses a 32K maximum with natural EOS; the 4-stream
+report distinguishes steady-state concurrent server throughput from lower
+whole-batch makespan throughput when streams finish at different times.
+
+~~~bash
+python tools/profiles/production-max.py \
+  --runtime candidate-name --output-dir "$run" \
+  --benchmarks all --benchmark-only \
+  --tokenizer-path /srv/models/hf/candidate-model
+~~~
+
+Omit --benchmark-only and supply the normal --deadline to run the selected
+performance tests immediately before the tool-quality suite. The benchmark
+reasoning effort defaults to xhigh and can be changed with
+--benchmark-reasoning-effort; the output ceiling defaults to 32,768 and can be
+changed with --benchmark-max-tokens.
+
 ### Performance
 
 `performance/decode-1024-harness.py` is the exact sealed client for the bounded

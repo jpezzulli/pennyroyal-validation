@@ -1,6 +1,6 @@
 --- tools/suite/bakeoff.py
 +++ tools/profiles/production-max.py
-@@ -516,7 +516,7 @@
+@@ -517,7 +517,7 @@
              "model": "pennyroyal",
              "messages": messages,
              "max_tokens": case.get("max_tokens", 768),
