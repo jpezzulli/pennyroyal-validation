@@ -13,6 +13,9 @@ import urllib.request
 from pathlib import Path
 
 
+MEASURED_MAX_TOKENS = 65536
+
+
 def load_suite(path):
     spec = importlib.util.spec_from_file_location("frozen_suite", path)
     module = importlib.util.module_from_spec(spec)
@@ -245,6 +248,10 @@ def main():
     parser.add_argument("--model", default="pennyroyal")
     parser.add_argument("--heat-sentinel", required=True)
     parser.add_argument("--tokenizer-path", required=True)
+    parser.add_argument(
+        "--case",
+        help="Run only one measured case ID (for example C5); skips warm-ups.",
+    )
     args = parser.parse_args()
 
     out = Path(args.output)
@@ -252,6 +259,11 @@ def main():
     raw_dir.mkdir(parents=True, exist_ok=True)
     heat_sentinel = Path(args.heat_sentinel)
     suite = load_suite(Path(args.suite))
+    selected_cases = suite.CASES
+    if args.case:
+        selected_cases = [case for case in suite.CASES if case["id"] == args.case]
+        if not selected_cases:
+            parser.error(f"unknown case ID: {args.case}")
 
     from transformers import AutoTokenizer
     tokenizer = AutoTokenizer.from_pretrained(
@@ -279,7 +291,7 @@ def main():
             512,
         ),
     ]
-    for request_id, prompt, cap in warmups:
+    for request_id, prompt, cap in ([] if args.case else warmups):
         payload = {
             "model": args.model,
             "messages": messages(suite.SYSTEM, prompt),
@@ -304,12 +316,12 @@ def main():
         if result["error"]:
             return 2
 
-    for case in suite.CASES:
+    for case in selected_cases:
         request_id = f"{case['id'].lower()}-r1"
         payload = {
             "model": args.model,
             "messages": messages(suite.SYSTEM, case["prompt"]),
-            "max_tokens": 32768,
+            "max_tokens": MEASURED_MAX_TOKENS,
             "stream": True,
             "stream_options": {"include_usage": True},
         }
@@ -344,7 +356,7 @@ def main():
         correction_payload = {
             "model": args.model,
             "messages": correction_messages,
-            "max_tokens": 32768,
+            "max_tokens": MEASURED_MAX_TOKENS,
             "stream": True,
             "stream_options": {"include_usage": True},
         }

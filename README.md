@@ -17,9 +17,12 @@ technical reasoning, unsupported assumptions, confidence calibration, revision
 quality, loop behavior, and final-answer usability.
 
 Read `reasoning/design/protocol.md` and `reasoning/design/rubric.json` before
-running it. The collector sends no tools and allows up to 32,768 output tokens.
-Qualitative grading must be locked from the anonymized packet before operational
-metadata is revealed.
+running it. The collector sends no tools and allows up to 65,536 output tokens
+for every measured reasoning case. The ceiling was raised from 32K after a
+Qwen3.8-27B C5 run exhausted that budget before completing; historical 32K
+baselines remain preserved as results under the earlier contract. Qualitative
+grading must be locked from the anonymized packet before operational metadata
+is revealed.
 
 ```bash
 run=/opt/ai-artifacts/logs/reasoning-quality-NEW-RUN
@@ -35,6 +38,10 @@ python reasoning/bin/anonymize.py \
   --suite reasoning/design/suite.py --results "$run/results.jsonl" \
   --output "$run/anonymized/packet.json"
 ```
+
+For a targeted confirmation rerun after a clipped case, use a fresh output
+directory and add `--case C5` (or another exact case ID) to `run_suite.py`.
+Targeted runs skip warm-ups and do not replace the preserved original response.
 
 ### Tool use and agent behavior
 
