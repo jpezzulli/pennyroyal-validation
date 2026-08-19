@@ -13,7 +13,9 @@ import urllib.request
 from pathlib import Path
 
 
-MEASURED_MAX_TOKENS = 65536
+ROOT = Path(__file__).resolve().parent
+sys.path.insert(0, str(ROOT))
+from common import base_url, read_jsonl, served_model_name, write_json  # noqa: E402
 
 
 def load_suite(path):
@@ -239,31 +241,98 @@ def messages(system, prompt):
     return [{"role": "system", "content": system}, {"role": "user", "content": prompt}]
 
 
+def measured_payload(model, request_messages):
+    """Build a measured request without a harness-imposed output-token cap."""
+    return {
+        "model": model,
+        "messages": request_messages,
+        "stream": True,
+        "stream_options": {"include_usage": True},
+    }
+
+
+def measured_plan(suite):
+    plan = []
+    for case in suite.CASES:
+        plan.append({"request_id": f"{case['id'].lower()}-r1", "case_id": case["id"], "turn": 1})
+        if case["id"] == "C8":
+            plan.append({"request_id": "c8-r1-correction", "case_id": "C8", "turn": 2})
+    return plan
+
+
+def replay_manifest(path, suite):
+    rows = read_jsonl(path)
+    measured = [row for row in rows if row.get("kind") == "measured"]
+    expected = [(item["case_id"], item["turn"]) for item in measured_plan(suite)]
+    actual = [(item.get("case_id"), item.get("turn")) for item in measured]
+    errors = [item.get("error") for item in measured if item.get("error")]
+    manifest = {
+        "mode": "replay",
+        "source": str(path),
+        "expected_measured_requests": 9,
+        "measured_requests": len(measured),
+        "request_order_matches": actual == expected,
+        "errors": errors,
+        "gate_passed": len(measured) == 9 and actual == expected and not errors,
+        "grading": (
+            "Responses require blinded qualitative grading with cases/reasoning-rubric.json; "
+            "use score-reasoning.py after scores are locked."
+        ),
+    }
+    return manifest
+
+
 def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--suite", required=True)
-    parser.add_argument("--output", required=True)
-    parser.add_argument("--runtime", required=True)
-    parser.add_argument("--base", default="http://127.0.0.1:8001")
-    parser.add_argument("--model", default="pennyroyal")
-    parser.add_argument("--heat-sentinel", required=True)
-    parser.add_argument("--tokenizer-path", required=True)
-    parser.add_argument(
-        "--case",
-        help="Run only one measured case ID (for example C5); skips warm-ups.",
+    parser = argparse.ArgumentParser(
+        description="Run or inspect the frozen nine-request reasoning suite."
     )
+    parser.add_argument("--suite", type=Path, default=ROOT / "cases/reasoning.py")
+    parser.add_argument("--output", "--output-dir", dest="output", type=Path)
+    parser.add_argument("--runtime", default="candidate")
+    parser.add_argument("--base", "--base-url", dest="base", default=base_url())
+    parser.add_argument("--model", "--served-model-name", dest="model", default=served_model_name())
+    parser.add_argument("--heat-sentinel", type=Path)
+    parser.add_argument("--tokenizer-path")
+    parser.add_argument("--list", action="store_true", help="list deterministic request IDs")
+    parser.add_argument("--dry-run", action="store_true", help="print the request plan without contacting a server")
+    parser.add_argument("--replay", type=Path, help="validate an existing results.jsonl without contacting a server")
     args = parser.parse_args()
 
-    out = Path(args.output)
+    suite = load_suite(args.suite)
+    plan = measured_plan(suite)
+    if args.list:
+        for item in plan:
+            print(f"{item['request_id']}\t{item['case_id']}\tturn {item['turn']}")
+        return 0
+    if args.dry_run:
+        print(json.dumps({
+            "mode": "dry-run",
+            "base_url": args.base,
+            "served_model_name": args.model,
+            "warmups": 2,
+            "measured_requests": plan,
+            "request_parameters": {
+                "max_tokens": None,
+                "max_tokens_field": "omitted",
+                "stream": True,
+                "stream_options": {"include_usage": True},
+                "sampling_overrides": [],
+            },
+        }, indent=2))
+        return 0
+    if args.replay:
+        manifest = replay_manifest(args.replay, suite)
+        print(json.dumps(manifest, indent=2))
+        return 0 if manifest["gate_passed"] else 1
+    if not args.tokenizer_path:
+        parser.error("--tokenizer-path is required for a live run")
+
+    out = args.output or Path(
+        "validation-results", time.strftime("reasoning-%Y%m%d-%H%M%S")
+    )
     raw_dir = out / "raw"
     raw_dir.mkdir(parents=True, exist_ok=True)
-    heat_sentinel = Path(args.heat_sentinel)
-    suite = load_suite(Path(args.suite))
-    selected_cases = suite.CASES
-    if args.case:
-        selected_cases = [case for case in suite.CASES if case["id"] == args.case]
-        if not selected_cases:
-            parser.error(f"unknown case ID: {args.case}")
+    heat_sentinel = args.heat_sentinel or out / "HEAT_STOP"
 
     from transformers import AutoTokenizer
     tokenizer = AutoTokenizer.from_pretrained(
@@ -291,7 +360,7 @@ def main():
             512,
         ),
     ]
-    for request_id, prompt, cap in ([] if args.case else warmups):
+    for request_id, prompt, cap in warmups:
         payload = {
             "model": args.model,
             "messages": messages(suite.SYSTEM, prompt),
@@ -316,15 +385,11 @@ def main():
         if result["error"]:
             return 2
 
-    for case in selected_cases:
+    for case in suite.CASES:
         request_id = f"{case['id'].lower()}-r1"
-        payload = {
-            "model": args.model,
-            "messages": messages(suite.SYSTEM, case["prompt"]),
-            "max_tokens": MEASURED_MAX_TOKENS,
-            "stream": True,
-            "stream_options": {"include_usage": True},
-        }
+        payload = measured_payload(
+            args.model, messages(suite.SYSTEM, case["prompt"])
+        )
         print(f"START {request_id} {case['title']}", flush=True)
         result = stream_chat(
             args.base, payload, raw_dir, request_id, tokenizer, heat_sentinel
@@ -353,13 +418,7 @@ def main():
             assistant,
             {"role": "user", "content": case["correction"]},
         ])
-        correction_payload = {
-            "model": args.model,
-            "messages": correction_messages,
-            "max_tokens": MEASURED_MAX_TOKENS,
-            "stream": True,
-            "stream_options": {"include_usage": True},
-        }
+        correction_payload = measured_payload(args.model, correction_messages)
         print(f"START {correction_id}", flush=True)
         corrected = stream_chat(
             args.base, correction_payload, raw_dir, correction_id,
@@ -380,6 +439,19 @@ def main():
             return 2
 
     append_jsonl(events_path, {"event": "suite_complete", "epoch": time.time()})
+    write_json(out / "manifest.json", {
+        "runtime": args.runtime,
+        "base_url": args.base,
+        "served_model_name": args.model,
+        "suite_source": str(args.suite),
+        "warmups": 2,
+        "measured_requests": 9,
+        "measured_max_tokens": None,
+        "measured_max_tokens_field": "omitted",
+        "request_plan": plan,
+        "results": "results.jsonl",
+        "grading": "blinded qualitative review required; see cases/reasoning-rubric.json",
+    })
     return 0
 
 

@@ -1,0 +1,74 @@
+{
+  "schema_version": 1,
+  "release_tag": "public-baseline-2026-08-18",
+  "assets": [
+    {
+      "name": "dflash2-20260818-detailed.tar.zst",
+      "sha256": "5896079d7dd9219e4aa1fbe1319d61b8e47e29fe833aa50de9358913f5527ee5",
+      "size_bytes": 240602,
+      "runs": ["qwen38_27b_uncensored_fp8_sglang_dflash2_20260818"],
+      "url": "https://github.com/jpezzulli/pennyroyal-validation/releases/download/public-baseline-2026-08-18/dflash2-20260818-detailed.tar.zst",
+      "includes": "protocol rows, reconstructed reasoning/tool results, requests, grades, grading packet, score, manifests, events, and model discovery",
+      "omits": "timestamped SSE streams and server logs"
+    },
+    {
+      "name": "sglang-dspark-20260817-detailed.tar.zst",
+      "sha256": "57eec10067f21e1dacec2ea0fe6f3566d2023ed2c2a344b139a59d36ef66abb3",
+      "size_bytes": 235024,
+      "runs": ["qwen38_27b_uncensored_fp8_sglang_dspark_20260817"],
+      "url": "https://github.com/jpezzulli/pennyroyal-validation/releases/download/public-baseline-2026-08-18/sglang-dspark-20260817-detailed.tar.zst",
+      "includes": "performance protocol, validation summary, reconstructed reasoning/tool results, requests, grades, grading packet, score, manifests, and events",
+      "omits": "timestamped SSE streams and server logs"
+    },
+    {
+      "name": "qwen38-stock-ferrari-20260815-16-detailed.tar.zst",
+      "sha256": "a741eb97d7536638c8af9c0c1e9c5c9ae88755e7ebf5f346ab2cd5c0cd92a564",
+      "size_bytes": 3740876,
+      "runs": [
+        "qwen38_27b_bf16_stock_20260815",
+        "qwen38_27b_fp8_bf16kv_stock_20260815",
+        "qwen38_27b_mtp_nvfp4_stock_20260815",
+        "qwen38_27b_uncensored_fp8_ferrari_20260816"
+      ],
+      "url": "https://github.com/jpezzulli/pennyroyal-validation/releases/download/public-baseline-2026-08-18/qwen38-stock-ferrari-20260815-16-detailed.tar.zst",
+      "includes": "grades, reconstructed results, benchmark summaries/results, tool summaries, provenance, and compact telemetry",
+      "omits": "timestamped SSE streams and server logs"
+    },
+    {
+      "name": "mapped-w2-dspark4-20260802-detailed.tar.zst",
+      "sha256": "f4fa37a0d7a432184ae9e70cb86abe195593dd3c52bce294c254d969d5c483dc",
+      "size_bytes": 1257536,
+      "runs": ["ds4flash0731_mapped_w2_dspark4_20260802"],
+      "url": "https://github.com/jpezzulli/pennyroyal-validation/releases/download/public-baseline-2026-08-18/mapped-w2-dspark4-20260802-detailed.tar.zst",
+      "includes": "frozen and selected-settings qualifications, grades, reconstructed results, tool summaries, near-million-token result, reports, manifests, provenance, and telemetry",
+      "omits": "timestamped SSE streams and server logs"
+    },
+    {
+      "name": "ling3-nvfp4-20260810-detailed.tar.zst",
+      "sha256": "d28948cf7a5986ba0e5ae5d988ed2f18cfb4ca6a870f987e7d279b7f56f63559",
+      "size_bytes": 253404,
+      "runs": ["ling3_flash_nvfp4_20260810"],
+      "url": "https://github.com/jpezzulli/pennyroyal-validation/releases/download/public-baseline-2026-08-18/ling3-nvfp4-20260810-detailed.tar.zst",
+      "includes": "grade, reconstructed reasoning/tool results, operational summaries, provenance, and telemetry",
+      "omits": "timestamped SSE streams and server logs"
+    },
+    {
+      "name": "reasoning-quality-staged-20260731-123116-ds4-moet.tar.gz",
+      "sha256": "b47a572a6178c82f9b190cdf71e3a24dbeef38f2711bcb93a348d8600fa79a30",
+      "size_bytes": 1299178,
+      "runs": ["ds4flash0731_vllm_moet_20260731"],
+      "url": "https://github.com/jpezzulli/pennyroyal-validation/releases/download/public-baseline-2026-08-18/reasoning-quality-staged-20260731-123116-ds4-moet.tar.gz",
+      "includes": "original immutable DS4 reasoning archive with requests, raw SSE, reconstructed results, telemetry, provenance, grades, targeted rerun, and report",
+      "omits": "nothing beyond the original stage-specific archive boundary"
+    },
+    {
+      "name": "reasoning-quality-staged-20260731-123116-qwen.tar.gz",
+      "sha256": "82f7654096443d223db1a43d1282007781df871f01419da94b7aee5053807f73",
+      "size_bytes": 898868,
+      "runs": [],
+      "url": "https://github.com/jpezzulli/pennyroyal-validation/releases/download/public-baseline-2026-08-18/reasoning-quality-staged-20260731-123116-qwen.tar.gz",
+      "includes": "original immutable historical Qwen reasoning archive with requests, raw SSE, reconstructed results, telemetry, provenance, grade, and report",
+      "omits": "nothing beyond the original stage-specific archive boundary; retained as the paired historical screen even though the exact checkpoint is not a separate curated row"
+    }
+  ]
+}

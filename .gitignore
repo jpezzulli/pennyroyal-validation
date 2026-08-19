@@ -2,11 +2,11 @@ __pycache__/
 *.py[cod]
 .venv/
 venv/
-run/
-results/
+/run/
+/validation-results/
 *.log
 *.csv
 *.jsonl
 *.sse
 *.tar.gz
-
+*.tar.zst

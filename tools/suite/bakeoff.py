@@ -4,6 +4,7 @@ import concurrent.futures
 import json
 import re
 import subprocess
+import sys
 import time
 import urllib.error
 import urllib.request
@@ -112,6 +113,87 @@ TOOLS = {
         {"code": {"type": "string"}},
         ["code"],
     ),
+    "tool_search": {
+        "type": "function",
+        "function": {
+            "name": "tool_search",
+            "description": (
+                "Search 1 additional tools that are loaded on demand. Returns up "
+                "to ``limit`` matches with name and description. Follow with "
+                "`tool_describe` to load a tool's full parameter schema, then "
+                "`tool_call` to invoke it. Tools listed at the top of this system "
+                "prompt are already available and do not need to be searched."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {
+                        "type": "string",
+                        "description": (
+                            "Keywords describing the capability you need "
+                            "(e.g. 'create github issue')."
+                        ),
+                    },
+                    "limit": {
+                        "type": "integer",
+                        "description": (
+                            "Maximum number of results to return. Default 5."
+                        ),
+                    },
+                },
+                "required": ["query"],
+            },
+        },
+    },
+    "tool_describe": {
+        "type": "function",
+        "function": {
+            "name": "tool_describe",
+            "description": (
+                "Load the full JSON schema for one tool returned by `tool_search`. "
+                "Required before `tool_call` if the tool's parameters are unknown."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "description": (
+                            "Exact tool name (as returned by tool_search)."
+                        ),
+                    },
+                },
+                "required": ["name"],
+            },
+        },
+    },
+    "tool_call": {
+        "type": "function",
+        "function": {
+            "name": "tool_call",
+            "description": (
+                "Invoke a deferred tool by name with the given arguments. Argument "
+                "shape matches the tool's schema (see `tool_describe`). Policy, "
+                "hooks, and approvals run exactly as for any directly-listed tool."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "description": "Exact tool name to invoke.",
+                    },
+                    "arguments": {
+                        "type": "object",
+                        "description": (
+                            "Arguments for the tool, matching its schema."
+                        ),
+                    },
+                },
+                "required": ["name", "arguments"],
+            },
+        },
+    },
 }
 
 
@@ -168,6 +250,56 @@ def execute_tool(name, args):
     if name == "verify_code":
         code = args.get("code")
         return {"code": code, "verified": code == "ORCHID-7319"}
+    if name == "tool_search":
+        return {
+            "matches": [
+                {
+                    "name": "synthetic_inventory_lookup",
+                    "description": "Synthetic inventory fixture for regression testing.",
+                }
+            ]
+        }
+    if name == "tool_describe":
+        return {
+            "name": args.get("name"),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "sku": {"type": "string"},
+                    "include_location": {"type": "boolean"},
+                },
+                "required": ["sku", "include_location"],
+                "additionalProperties": False,
+            },
+        }
+    if name == "tool_call":
+        nested = args.get("arguments")
+        if not isinstance(nested, dict):
+            return {"error": "tool_call 'arguments' must be an object"}
+        if args.get("name") != "synthetic_inventory_lookup":
+            return {"error": "unknown deferred tool", "name": args.get("name")}
+        if (
+            set(nested) != {"sku", "include_location"}
+            or not isinstance(nested.get("sku"), str)
+            or not nested["sku"]
+            or type(nested.get("include_location")) is not bool
+        ):
+            return {
+                "error": "invalid deferred tool arguments",
+                "required": {
+                    "sku": "string",
+                    "include_location": "boolean",
+                },
+            }
+        return {
+            "name": args["name"],
+            "result": {
+                "sku": nested.get("sku"),
+                "available_units": 17,
+                "source": "warehouse-east",
+                "location_included": nested.get("include_location") is True,
+            },
+        }
     return {"error": "unknown_tool", "name": name}
 
 
@@ -279,6 +411,20 @@ CASES = [
         ),
         "tools": ["verify_code"],
         "max_tokens": 768,
+        "repeats": 1,
+    },
+    {
+        "id": "16_synthetic_deferred_bridge",
+        "prompt": (
+            "In this synthetic scenario, use the deferred-tool bridge to find "
+            "and call the inventory fixture. Follow tool_search, then "
+            "tool_describe, then tool_call. Look up SKU BRIDGE-731 with "
+            "include_location set to true, then report the exact available "
+            "units and source. Do not call the deferred tool before loading "
+            "its schema."
+        ),
+        "tools": ["tool_search", "tool_describe", "tool_call"],
+        "max_tokens": 1024,
         "repeats": 1,
     },
 ]
@@ -518,6 +664,46 @@ def evaluate(result):
             and calls[0]["arguments"].get("code") == "ORCHID-7319"
             and has_all(final, ["verif"])
         )
+    elif case_id == "16_synthetic_deferred_bridge":
+        serialized = json.dumps(result["raw_turns"], ensure_ascii=False)
+        forbidden = any(
+            marker in serialized.lower() for marker in ("dsml", "r0turn")
+        )
+        finish_reasons = [
+            choice.get("finish_reason")
+            for turn in result["raw_turns"]
+            for choice in turn["response"].get("choices", [])
+        ]
+        parser_finalization_ok = bool(finish_reasons) and all(
+            reason in {"tool_calls", "stop"} for reason in finish_reasons
+        )
+        tool_call_args = calls[2]["arguments"] if len(calls) == 3 else {}
+        nested = tool_call_args.get("arguments")
+        outer_exact = set(tool_call_args) == {"name", "arguments"}
+        nested_exact = nested == {
+            "sku": "BRIDGE-731",
+            "include_location": True,
+        }
+        passed = (
+            names == ["tool_search", "tool_describe", "tool_call"]
+            and calls[1]["arguments"]
+            == {"name": "synthetic_inventory_lookup"}
+            and tool_call_args.get("name") == "synthetic_inventory_lookup"
+            and outer_exact
+            and nested_exact
+            and parseable
+            and not forbidden
+            and parser_finalization_ok
+            and has_all(final, ["17", "warehouse-east"])
+        )
+        result["synthetic_bridge_checks"] = {
+            "outer_exact": outer_exact,
+            "nested_exact": nested_exact,
+            "json_parseable": parseable,
+            "forbidden_markup_absent": not forbidden,
+            "parser_finalization_ok": parser_finalization_ok,
+            "finish_reasons": finish_reasons,
+        }
     result["score"] = {
         "passed": bool(passed),
         "tool_arguments_parseable": parseable,
@@ -629,12 +815,55 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--runtime", required=True)
     parser.add_argument("--output-dir", required=True)
-    parser.add_argument("--deadline", type=float, required=True)
+    parser.add_argument("--deadline", type=float)
     parser.add_argument("--repeats", type=int, default=2)
     parser.add_argument("--only-case")
+    parser.add_argument("--only-case-repeats", type=int, default=1)
+    parser.add_argument(
+        "--benchmarks",
+        nargs="+",
+        choices=(
+            "prefill-64k",
+            "prefill-490k-needle",
+            "decode-1x",
+            "decode-4x",
+            "all",
+        ),
+    )
+    parser.add_argument("--benchmark-only", action="store_true")
+    parser.add_argument("--tokenizer-path")
+    parser.add_argument("--benchmark-reasoning-effort", default="xhigh")
+    parser.add_argument("--benchmark-max-tokens", type=int, default=32768)
     args = parser.parse_args()
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
+    if args.benchmarks:
+        if not args.tokenizer_path:
+            parser.error("--tokenizer-path is required with --benchmarks")
+        benchmark_script = Path(__file__).parents[1] / "suite" / "openai_benchmarks.py"
+        subprocess.run(
+            [
+                sys.executable,
+                str(benchmark_script),
+                "--output-dir",
+                str(output_dir / "performance"),
+                "--tokenizer-path",
+                args.tokenizer_path,
+                "--reasoning-effort",
+                args.benchmark_reasoning_effort,
+                "--max-tokens",
+                str(args.benchmark_max_tokens),
+                "--tests",
+                *args.benchmarks,
+            ],
+            check=True,
+        )
+        if args.benchmark_only:
+            return 0
+    elif args.benchmark_only:
+        parser.error("--benchmark-only requires --benchmarks")
+    if args.deadline is None:
+        parser.error("--deadline is required when running the tool suite")
     results_path = output_dir / "results.jsonl"
     events_path = output_dir / "events.jsonl"
 
@@ -654,17 +883,21 @@ def main():
         )
         if args.only_case:
             selected = next(case for case in CASES if case["id"] == args.only_case)
-            result = evaluate(run_conversation(deepcopy(selected), 4400))
-            result["runtime"] = args.runtime
-            result["phase"] = "corrected_case"
-            result["repeat"] = 0
-            results.write(json.dumps(result) + "\n")
+            for repeat in range(args.only_case_repeats):
+                result = evaluate(
+                    run_conversation(deepcopy(selected), 4400 + repeat)
+                )
+                result["runtime"] = args.runtime
+                result["phase"] = "targeted_case"
+                result["repeat"] = repeat
+                results.write(json.dumps(result) + "\n")
             events.write(
                 json.dumps(
                     {
-                        "event": "corrected_case_completed",
+                        "event": "targeted_case_completed",
                         "runtime": args.runtime,
                         "case_id": args.only_case,
+                        "repeats": args.only_case_repeats,
                         "epoch": time.time(),
                     }
                 )
