@@ -1,15 +1,16 @@
 # AI runner guide
 
-This file is an instruction set for a coding agent preparing to run Pennyroyal.
-Follow it as written. Do not start model inference during the preparation phase.
+This file is an instruction set for a coding agent preparing to run the
+validation suite. Follow it as written. Do not start model inference during the
+preparation phase.
 
 ## Your job
 
-Prepare the repository, understand the available suites, check the local
-environment safely, and tell the operator whether Pennyroyal is ready to run.
-The operator—not you—chooses which live suite to start.
+Prepare the repository, understand the available tests, check the local
+environment safely, and tell the operator whether the validation suite is ready
+to run. The operator—not you—chooses which live suite to start.
 
-You are operating the Pennyroyal scripts against a model endpoint. You do not
+You are operating the validation scripts against a model endpoint. You do not
 need to configure the tested local model as your own conversational backend.
 
 ## Safety rules
@@ -63,7 +64,7 @@ Read these files before proposing a run:
 Read [`docs/local-ai-clients.md`](docs/local-ai-clients.md) only when the
 operator also wants to point Codex, Claude Code, or another interactive client
 directly at the local model. That protocol-adapter task is separate from
-running the Pennyroyal Python clients.
+running the validation suite's Python clients.
 
 ## 3. Prepare Python and run safe checks
 
@@ -131,7 +132,7 @@ targeted rerun is additional evidence and never replaces the original attempt.
 Reply to the operator using this exact structure:
 
 ```text
-Pennyroyal preparation complete.
+Validation-suite preparation complete.
 
 Repository
 - Path: <checkout path>

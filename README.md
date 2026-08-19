@@ -1,17 +1,18 @@
-# Pennyroyal
+# Pennyroyal model validation
 
-**A practical test suite for local language models.**
+**A practical test suite for the Pennyroyal model and other local language
+models.**
 
-Point Pennyroyal at an OpenAI-compatible model server to find out whether the
-model and runtime can reason through difficult problems, use tools correctly,
-follow multi-step agent workflows, retrieve information from long contexts,
-and sustain useful generation speed.
+Point the validation suite at an OpenAI-compatible model server to find out
+whether the served model and runtime can reason through difficult problems, use
+tools correctly, follow multi-step agent workflows, retrieve information from
+long contexts, and sustain useful generation speed.
 
-Pennyroyal saves the requests, responses, scores, and timing data needed to
+The suite saves the requests, responses, scores, and timing data needed to
 inspect a result instead of reducing everything to a single benchmark number.
-It is a record of tested model configurations, not a leaderboard. Results from
-different models, runtimes, context sizes, and request shapes are shown as they
-were measured and should not be treated as perfectly comparable.
+This repository is a record of tested model configurations, not a leaderboard.
+Results from different models, runtimes, context sizes, and request shapes are
+shown as they were measured and should not be treated as perfectly comparable.
 
 ## Run it with Codex, Claude Code, or another coding agent
 
