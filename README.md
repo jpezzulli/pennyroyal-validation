@@ -30,22 +30,20 @@ that produced them. Different runs are often intentionally not comparable.
 
 | Path | Role |
 |---|---|
-| `validation/` | Current maintained suite imported from the `rtx-pro6000` line of `jpezzulli/vLLM-Moet` at PR #17 merge `0710574f21dc555653a87ee530f4e8ce1d87afdb` |
+| `validation/` | Current maintained reasoning, tool, agent, and long-context suite |
 | `reasoning/` | Earlier standalone 64K-cap reasoning collector and frozen case material |
 | `tools/` | Earlier standalone 31-invocation tool suite, including the synthetic deferred-bridge regression |
 | `performance/` | Historical bounded decode and OpenAI-compatible performance clients |
 | `baselines/` | Compact historical reports from the original standalone publication |
 | `results/` | Curated model/run history, compact manifests, and links to detailed bundles |
-| `docs/` | Case explanations, client guidance, provenance, and result policy |
+| `docs/` | Case explanations, client guidance, and result policy |
 
-The current maintained suite and the earlier standalone line are both retained
-because each contains legitimate behavior not present in the other. The
-current suite has strict replay/certification gates, an uncapped measured
-reasoning request shape, near-million-token retrieval, and sealed agentic and
-natural-decode controls. The earlier standalone line preserves the 64K
-targeted-rerun contract, synthetic deferred-tool bridge, reusable performance
-clients, and its compact baselines. Do not combine their scores or silently
-substitute one request contract for the other.
+The current suite provides strict replay and certification gates, an uncapped
+measured-reasoning request shape, near-million-token retrieval, and sealed
+agentic and natural-decode controls. The repository also includes a 64K
+targeted-rerun workflow, a synthetic deferred-tool bridge, reusable performance
+clients, and compact reference baselines. Do not combine scores from different
+request contracts or silently substitute one contract for another.
 
 ## Quick non-inference checks
 
@@ -68,16 +66,6 @@ For a live run, use a fresh output directory and explicitly identify the
 endpoint, served model, runtime, and exact repository commit. See
 [Suite operation](docs/suites.md).
 
-## Provenance
-
-The complete direct-API reasoning method remains archived at
-`/opt/ai-artifacts/ai-testing-method` on the original machine. The maintained
-public suite was first added to `jpezzulli/vLLM-Moet` by PR #3 at commit
-`93810cd`, then evolved there through strict-integrity, uncapped-reasoning,
-sealed-control, and concurrent-budget changes. The standalone consolidation
-uses the maintained snapshot at PR #17 merge
-`0710574f21dc555653a87ee530f4e8ce1d87afdb`. See
-[provenance](docs/provenance.md) for the complete reconciliation record.
 
 ## License
 
