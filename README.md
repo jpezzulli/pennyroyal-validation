@@ -1,135 +1,85 @@
 # Pennyroyal validation
 
-This private repository preserves the exact reusable validation assets used for
-the Pennyroyal DeepSeek-V4-Flash-0731 service on `thegrid`. The scripts, prompts,
-tool schemas, expected behavior, rubric, and production request overlay were
-copied byte-for-byte from the sealed 2026-08-02 evidence. Do not edit a frozen
-suite in place; create a new version if the test contract changes.
+Pennyroyal validation is a runtime-independent library for qualifying local
+models through OpenAI-compatible APIs. It preserves runnable reasoning, tool,
+agent, long-context, and performance tests; the rules that keep those tests
+stable; and a curated history of model/runtime configurations that established
+useful capabilities or durable failure boundaries.
 
-## Suites
+This is a library of tested configurations, not a leaderboard. Results belong
+to the exact model, checkpoint, runtime, source revision, quantization, KV
+dtype, context, speculative path, request profile, hardware, and suite commit
+that produced them. Different runs are often intentionally not comparable.
 
-### Tool-free reasoning
+## Start here
 
-`reasoning/` contains eight difficult cases plus the fixed C8 correction turn.
-The measured pass is nine requests after two warm-ups. It measures correctness,
-evidence discipline, contradiction detection, constraint preservation,
-technical reasoning, unsupported assumptions, confidence calibration, revision
-quality, loop behavior, and final-answer usability.
+- [Suite operation](docs/suites.md) explains endpoint requirements, commands,
+  outputs, scoring, reruns, and failure handling.
+- [Reasoning cases](docs/cases/reasoning.md) and [tool and agent
+  cases](docs/cases/tools.md) explain every frozen case.
+- [Tool schemas](docs/cases/tool-schemas.md) records the exact function schema
+  shapes used by the current tool suite.
+- [Local-AI clients](docs/local-ai-clients.md) covers direct suite use plus the
+  protocol adapters required by Codex and Claude Code.
+- [Maintenance rules](MAINTAINING.md) define freezing, versioning, and result
+  publication.
+- [Curated runs](results/README.md) links human-readable summaries and the
+  machine-readable [run index](results/runs.json).
 
-Read `reasoning/design/protocol.md` and `reasoning/design/rubric.json` before
-running it. The collector sends no tools and allows up to 65,536 output tokens
-for every measured reasoning case. The ceiling was raised from 32K after a
-Qwen3.8-27B C5 run exhausted that budget before completing; historical 32K
-baselines remain preserved as results under the earlier contract. Qualitative
-grading must be locked from the anonymized packet before operational metadata
-is revealed.
+## Repository layout
 
-```bash
-run=/opt/ai-artifacts/logs/reasoning-quality-NEW-RUN
-mkdir -p "$run/raw" "$run/provenance" "$run/anonymized"
-python reasoning/bin/monitor.py "$run/metrics.csv" \
-  --interval 1 --heat-sentinel "$run/HEAT_STOP" --cpu-limit 85 --gpu-limit 80
-python reasoning/bin/run_suite.py \
-  --suite reasoning/design/suite.py --output "$run" \
-  --runtime candidate-name --base http://127.0.0.1:8001 \
-  --model pennyroyal --heat-sentinel "$run/HEAT_STOP" \
-  --tokenizer-path /srv/models/hf/ds4flash0731
-python reasoning/bin/anonymize.py \
-  --suite reasoning/design/suite.py --results "$run/results.jsonl" \
-  --output "$run/anonymized/packet.json"
-```
+| Path | Role |
+|---|---|
+| `validation/` | Current maintained suite imported from the `rtx-pro6000` line of `jpezzulli/vLLM-Moet` at PR #17 merge `0710574f21dc555653a87ee530f4e8ce1d87afdb` |
+| `reasoning/` | Earlier standalone 64K-cap reasoning collector and frozen case material |
+| `tools/` | Earlier standalone 31-invocation tool suite, including the synthetic deferred-bridge regression |
+| `performance/` | Historical bounded decode and OpenAI-compatible performance clients |
+| `baselines/` | Compact historical reports from the original standalone publication |
+| `results/` | Curated model/run history, compact manifests, and links to detailed bundles |
+| `docs/` | Case explanations, client guidance, provenance, and result policy |
 
-For a targeted confirmation rerun after a clipped case, use a fresh output
-directory and add `--case C5` (or another exact case ID) to `run_suite.py`.
-Targeted runs skip warm-ups and do not replace the preserved original response.
+The current maintained suite and the earlier standalone line are both retained
+because each contains legitimate behavior not present in the other. The
+current suite has strict replay/certification gates, an uncapped measured
+reasoning request shape, near-million-token retrieval, and sealed agentic and
+natural-decode controls. The earlier standalone line preserves the 64K
+targeted-rerun contract, synthetic deferred-tool bridge, reusable performance
+clients, and its compact baselines. Do not combine their scores or silently
+substitute one request contract for the other.
 
-### Tool use and agent behavior
+## Quick non-inference checks
 
-`tools/suite/` contains the canonical 31-invocation suite: direct answers, exact
-tool selection and arguments, clarification, dependent calls, tool-error
-recovery, untrusted tool output, invalid input, one-shot action control, exact
-JSON, arithmetic, subagent synthesis, long-context retrieval, and a concurrent
-main-agent/two-subagent group. The 31st invocation is a generic synthetic
-deferred-bridge regression covering `tool_search → tool_describe → tool_call`,
-open nested arguments, exact JSON, containment, and parser finalization. It is
-self-contained and uses only local canned tool results.
-
-The frozen profile uses `reasoning_effort=high`. The production profile is the
-exact one-line overlay in `tools/profiles/production-max.py`, which uses
-`reasoning_effort=max`; its diff is preserved beside it. The launcher supplies
-`top_p=0.95` for the production profile.
+These commands do not contact a model endpoint:
 
 ```bash
-run=/opt/ai-artifacts/logs/tool-agent-NEW-RUN
-deadline=$(( $(date +%s) + 14400 ))
-python tools/suite/monitor.py "$run/telemetry.csv" --interval 1 &
-python tools/profiles/production-max.py \
-  --runtime candidate-name --output-dir "$run" --deadline "$deadline"
-python tools/suite/summarize.py "$run"
+python3 -m unittest discover -s validation/tests -v
+python3 validation/run-reasoning.py --dry-run
+python3 validation/run-tools.py --dry-run
+python3 validation/run-needle.py --smoke
+python3 scripts/validate_repository.py
+sha256sum -c SHA256SUMS
 ```
 
-A pass for the canonical suite is reviewed `31/31`, with exact argument,
-JSON/DSML, clarification, recovery, invalid-input, synthetic deferred-bridge,
-and one-shot behavior intact. The preserved historical production baseline
-remains a reviewed `30/30` result from before the synthetic case was added.
+The checksum file covers the earlier standalone frozen assets. Mutable
+orientation, generated result indexes, and repository metadata are validated
+structurally instead of being frozen into that legacy manifest.
 
-The tool runners also expose reusable, opt-in OpenAI chat-completions
-performance tests. They do not run during an ordinary 31-invocation quality
-suite. Available selections are prefill-64k, prefill-490k-needle, decode-1x,
-decode-4x, and all. Decode uses a 32K maximum with natural EOS; the 4-stream
-report distinguishes steady-state concurrent server throughput from lower
-whole-batch makespan throughput when streams finish at different times.
+For a live run, use a fresh output directory and explicitly identify the
+endpoint, served model, runtime, and exact repository commit. See
+[Suite operation](docs/suites.md).
 
-~~~bash
-python tools/profiles/production-max.py \
-  --runtime candidate-name --output-dir "$run" \
-  --benchmarks all --benchmark-only \
-  --tokenizer-path /srv/models/hf/candidate-model
-~~~
+## Provenance
 
-Omit --benchmark-only and supply the normal --deadline to run the selected
-performance tests immediately before the tool-quality suite. The benchmark
-reasoning effort defaults to xhigh and can be changed with
---benchmark-reasoning-effort; the output ceiling defaults to 32,768 and can be
-changed with --benchmark-max-tokens.
+The complete direct-API reasoning method remains archived at
+`/opt/ai-artifacts/ai-testing-method` on the original machine. The maintained
+public suite was first added to `jpezzulli/vLLM-Moet` by PR #3 at commit
+`93810cd`, then evolved there through strict-integrity, uncapped-reasoning,
+sealed-control, and concurrent-budget changes. The standalone consolidation
+uses the maintained snapshot at PR #17 merge
+`0710574f21dc555653a87ee530f4e8ce1d87afdb`. See
+[provenance](docs/provenance.md) for the complete reconciliation record.
 
-### Performance
+## License
 
-`performance/decode-1024-harness.py` is the exact sealed client for the bounded
-1,024-output-token decode. `performance/run_performance.py` is the exact client
-used for target-only single decode, three-way concurrent decode, 64K prefill,
-and immediate prefix-cache reuse. These files retain their historical request
-settings and output assumptions; copy a client into a new artifact directory
-before changing only its output destination.
-
-## Requirements
-
-- An OpenAI-compatible endpoint at `http://127.0.0.1:8001`
-- Served model name `pennyroyal`
-- Python 3; the 2026-08-02 environment used Python 3.14.6
-- `transformers==5.14.1` for reasoning token counting and loop detection
-- Standard Linux telemetry interfaces, `sensors`, and `nvidia-smi`
-- No candidate-facing tools for the reasoning suite
-
-The launcher controls model/runtime geometry and default sampling except for the
-explicit request fields already frozen in a suite/profile.
-
-## Production baseline
-
-- Runtime source: `jpezzulli/vllm:production/pennyroyal-ds4flash-6gib-fp4`
-- Validated source commit: `98cef19a50765148aba29084dc88da5d16f31700`
-- Exact 1,024-token clean reproduction: 53.83 tok/s
-- Sealed 1,024-token reference: 55.02 tok/s
-- Frozen reasoning (`reasoning_effort=high`): 92.66/100
-- Production reasoning (`reasoning_effort=max`, `top_p=0.95`): 96.86/100
-- Frozen and production tool results: 30/30 reviewed
-
-Compact reports are under `baselines/`. Full requests, responses, reasoning,
-tool calls/results, server logs, and telemetry remain outside Git under
-`/opt/ai-artifacts`; see `docs/artifact-index.md`.
-
-## Integrity
-
-Run `sha256sum -c SHA256SUMS` from the repository root before every campaign.
-Generated result directories, logs, environments, model files, and credentials
-must never be committed.
+This repository did not contain a license before public consolidation, and no
+license has been added or implied by that work.
