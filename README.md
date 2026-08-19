@@ -13,6 +13,20 @@ It is a record of tested model configurations, not a leaderboard. Results from
 different models, runtimes, context sizes, and request shapes are shown as they
 were measured and should not be treated as perfectly comparable.
 
+## Run it with Codex, Claude Code, or another coding agent
+
+Give a shell-capable coding agent this exact instruction:
+
+> Read <https://github.com/jpezzulli/pennyroyal-validation/blob/main/RUN_WITH_AI.md>
+> and follow it exactly. Prepare and inspect only—do not start inference. When
+> preparation is complete, give me the readiness report required by the guide
+> and wait for me to choose which suite to run.
+
+The guide tells the agent how to obtain the repository, inspect the frozen
+cases, run the safe checks, verify the endpoint, and report whether it is ready.
+It works with Codex, Claude Code, and other coding agents that can read files
+and run shell commands.
+
 ## Reasoning cases
 
 The reasoning suite contains eight cases and one fixed correction turn. Each
