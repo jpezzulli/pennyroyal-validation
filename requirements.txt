@@ -1,2 +1,2 @@
 transformers==5.14.1
-
+httpx>=0.27,<1

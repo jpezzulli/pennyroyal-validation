@@ -1,4 +1,4 @@
-"""Shared helpers for the public Pennyroyal validation runners."""
+"""Shared helpers for the public model-validation runners."""
 
 from __future__ import annotations
 

@@ -104,6 +104,16 @@ def metric_delta(before, after, name):
     return after[name] - before[name]
 
 
+def qualification_gate_passed(manifest):
+    return (
+        manifest["actual_input_tokens"] == manifest["target_input_tokens"]
+        and manifest["needle_start_zero_based_token"] == 154
+        and manifest["visible_content_exact_after_strip"]
+        and manifest["follow_up_passed"]
+        and manifest["error"] is None
+    )
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Run the opt-in tokenizer-exact near-million-token needle test."
@@ -387,7 +397,13 @@ def main():
         "actual_input_tokens": actual_input_tokens,
         "needle": NEEDLE,
         "needle_start_zero_based_token": needle_position,
-        "needle_retrieved": result["needle_present_in_any_response_field"],
+        "needle_retrieved": result["visible_content_exact_after_strip"],
+        "needle_present_in_any_response_field": result[
+            "needle_present_in_any_response_field"
+        ],
+        "visible_content_exact_after_strip": result[
+            "visible_content_exact_after_strip"
+        ],
         "follow_up_passed": follow_result["passed"],
         "usage": usage,
         "finish_reason": finish_reason,
@@ -396,13 +412,7 @@ def main():
         "server_metrics": server_metrics,
         "error": error or follow_error,
     }
-    manifest["gate_passed"] = (
-        manifest["actual_input_tokens"] == manifest["target_input_tokens"]
-        and manifest["needle_start_zero_based_token"] == 154
-        and manifest["needle_retrieved"]
-        and manifest["follow_up_passed"]
-        and manifest["error"] is None
-    )
+    manifest["gate_passed"] = qualification_gate_passed(manifest)
     write_json(output / "manifest.json", manifest)
     print(json.dumps({"tokenization": tokenization, "result": result, "follow_up": follow_result}, indent=2))
     return 0 if manifest["gate_passed"] else 2
