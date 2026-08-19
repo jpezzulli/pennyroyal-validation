@@ -89,9 +89,6 @@ def check_curated_runs() -> list[str]:
     ids = [run.get("id") for run in runs]
     if len(ids) != len(set(ids)):
         errors.append("duplicate curated run id")
-    selected = [run for run in runs if run.get("selected")]
-    if len(selected) != 1:
-        errors.append(f"expected one current selected run, found {len(selected)}")
     required = {
         "id",
         "date",
@@ -104,8 +101,6 @@ def check_curated_runs() -> list[str]:
         "target_kv",
         "context_admission_tokens",
         "suite_commit",
-        "outcome",
-        "selected",
         "evidence_roots",
         "evidence_gaps",
         "comparability",

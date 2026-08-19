@@ -30,8 +30,6 @@
         "exact_calls": "30/30 in later mapped-W2 passes"
       },
       "performance": {},
-      "outcome": "selected historical Pennyroyal base",
-      "selected": false,
       "custom_implementation": "MoET loader and 6 GiB FP4 correction tier",
       "evidence_roots": [
         "/opt/ai-artifacts/logs/reasoning-quality-staged-20260731-123116"
@@ -79,8 +77,6 @@
         "needle_retrieval": "exact",
         "needle_time_to_first_token_seconds": 975.55
       },
-      "outcome": "selected; later superseded",
-      "selected": false,
       "custom_implementation": "Runner V2, five NUMA-local CUDA-mapped W2 layers, DSpark-4, 6 GiB FP4 correction tier",
       "evidence_roots": [
         "/opt/ai-artifacts/logs/pennyroyal-dspark4-performance-suites-20260802-205032",
@@ -126,8 +122,6 @@
         "prefill_16384_tokens_per_second": 5994,
         "decode_512_tokens_per_second": 69.9
       },
-      "outcome": "rejected; useful correctness boundary",
-      "selected": false,
       "custom_implementation": "SM120 MLA shared-memory fallback and identity initialization for missing NVFP4 activation scales",
       "evidence_roots": [
         "/opt/ai-artifacts/logs/reasoning-quality-ling3-thinking-uncapped-20260810-191531",
@@ -166,8 +160,6 @@
         "decode_4x_aggregate_tokens_per_second": 461.62,
         "decode_shape_note": "Decode used the earlier 8096/0.98 shape, not the final 8192/0.97 promotion shape"
       },
-      "outcome": "selected; later superseded",
-      "selected": false,
       "custom_implementation": null,
       "evidence_roots": [
         "/opt/ai-artifacts/adro/markdown/aidocs/2026-08-18/20260818-v1-AIDocs-Model-Benchmark-Registry.md"
@@ -214,8 +206,6 @@
         "decode_4x_aggregate_tokens_per_second": 215.81,
         "needle_retrieval": "3/3 exact"
       },
-      "outcome": "qualified candidate; not selected at checkpoint",
-      "selected": false,
       "custom_implementation": null,
       "evidence_roots": [
         "/opt/ai-artifacts/logs/qwen38-27b-stock-20260815-011827"
@@ -255,8 +245,6 @@
         "prefill_490k_tokens_per_second": 2280.13,
         "decode_1x_tokens_per_second": 74.06
       },
-      "outcome": "clean pre-Ferrari reference",
-      "selected": false,
       "custom_implementation": null,
       "evidence_roots": [
         "/opt/ai-artifacts/logs/qwen38-27b-fp8-bf16kv-stock-20260815-134018"
@@ -297,8 +285,6 @@
         "prefill_490k_tokens_per_second": 2238.72,
         "decode_1x_tokens_per_second": 88.39
       },
-      "outcome": "rejected; durable C5 idempotency boundary",
-      "selected": false,
       "custom_implementation": null,
       "evidence_roots": [
         "/opt/ai-artifacts/logs/qwen38-27b-mtp-nvfp4-stock-20260815-101131",
@@ -346,8 +332,6 @@
         "decode_4x_aggregate_tokens_per_second": 299.52,
         "needle_retrieval": "3/3 exact"
       },
-      "outcome": "selected; later superseded by native SGLang",
-      "selected": false,
       "custom_implementation": "Ferrari connected scheduler-selected K to physically distinct proposer graphs; local adaptive policy remained separate",
       "evidence_roots": [
         "/opt/ai-artifacts/logs/reasoning-quality-qwen38-27b-fp8-uncensored-ferrari-20260816-164620",
@@ -397,8 +381,6 @@
         "decode_4x_aggregate_tokens_per_second": 342.72,
         "needle_retrieval": "3/3 exact"
       },
-      "outcome": "selected; later superseded by DFlash2",
-      "selected": false,
       "custom_implementation": "independent draft configuration, GCC 15 JIT, compact ragged SM120 verification, ragged mRoPE positions, split prefill/decode timing",
       "evidence_roots": [
         "/opt/sglang/benchmarks/results/reasoning-20260817-sglang-static7-tuned450",
@@ -453,8 +435,6 @@
         "decode_4x_aggregate_tokens_per_second": 324.6,
         "needle_retrieval": "3/3 exact"
       },
-      "outcome": "current selected Pennyroyal runtime",
-      "selected": true,
       "custom_implementation": "local DFlash2 convolution and candidate selector plus SM120 SGLang fixes inherited from the DSpARK source line",
       "evidence_roots": [
         "/opt/sglang/benchmarks/results/protocol-20260818-dflash2-fp8kv.jsonl",
