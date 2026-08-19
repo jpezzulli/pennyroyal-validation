@@ -1005,6 +1005,12 @@ def evaluate(result):
     return result
 
 
+def targeted_case_exit_code(result):
+    if result.get("error"):
+        return 2
+    return 0 if result.get("score", {}).get("passed") else 1
+
+
 def evaluate_control(result):
     case_id = result["case_id"]
     calls = result["calls"]
@@ -1557,7 +1563,7 @@ def main():
                 )
                 + "\n"
             )
-            return 0
+            return targeted_case_exit_code(result)
         smoke = deepcopy(CASES[0])
         smoke_result = evaluate(run_conversation(smoke, 4101))
         smoke_result["runtime"] = args.runtime

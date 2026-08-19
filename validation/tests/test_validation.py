@@ -7,6 +7,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -40,6 +41,20 @@ class ResponseExtractionTests(unittest.TestCase):
     def test_needle_fixture_smoke(self):
         self.assertTrue(needle_runner.fixture_smoke()["passed"])
 
+    def test_needle_gate_requires_exact_visible_answer(self):
+        manifest = {
+            "actual_input_tokens": 994987,
+            "target_input_tokens": 994987,
+            "needle_start_zero_based_token": 154,
+            "needle_present_in_any_response_field": True,
+            "visible_content_exact_after_strip": False,
+            "follow_up_passed": True,
+            "error": None,
+        }
+        self.assertFalse(needle_runner.qualification_gate_passed(manifest))
+        manifest["visible_content_exact_after_strip"] = True
+        self.assertTrue(needle_runner.qualification_gate_passed(manifest))
+
 
 class ReasoningSuiteTests(unittest.TestCase):
     def setUp(self):
@@ -63,6 +78,21 @@ class ReasoningSuiteTests(unittest.TestCase):
         payload = reasoning_runner.measured_payload("pennyroyal", [])
         self.assertNotIn("max_tokens", payload)
         self.assertNotIn("max_completion_tokens", payload)
+
+    def test_public_replay_fixture_passes(self):
+        completed = subprocess.run(
+            [
+                sys.executable,
+                str(ROOT / "run-reasoning.py"),
+                "--replay",
+                str(ROOT / "fixtures/reasoning-replay.jsonl"),
+            ],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(completed.returncode, 0, completed.stderr)
+        self.assertTrue(json.loads(completed.stdout)["gate_passed"])
 
     def test_historical_grade_reproduces_published_score(self):
         result = self.score()
@@ -302,6 +332,66 @@ class ToolSuiteTests(unittest.TestCase):
         good["calls"][0]["arguments"]["unit"] = "fahrenheit"
         self.assertFalse(tool_runner.strict_calls_match(good))
 
+    def test_targeted_case_exit_code_tracks_evaluation_and_errors(self):
+        self.assertEqual(
+            tool_runner.targeted_case_exit_code(
+                {"error": None, "score": {"passed": True}}
+            ),
+            0,
+        )
+        self.assertEqual(
+            tool_runner.targeted_case_exit_code(
+                {"error": None, "score": {"passed": False}}
+            ),
+            1,
+        )
+        self.assertEqual(
+            tool_runner.targeted_case_exit_code(
+                {"error": "endpoint failed", "score": {"passed": False}}
+            ),
+            2,
+        )
+
+    def test_targeted_case_cli_returns_nonzero_on_failure_and_error(self):
+        cases = (
+            (
+                {
+                    "case_id": "02_obvious_weather",
+                    "final": "wrong",
+                    "calls": [],
+                    "error": None,
+                },
+                1,
+            ),
+            (
+                {
+                    "case_id": "02_obvious_weather",
+                    "final": "",
+                    "calls": [],
+                    "error": "endpoint failed",
+                },
+                2,
+            ),
+        )
+        for index, (result, expected) in enumerate(cases):
+            with self.subTest(
+                expected=expected
+            ), tempfile.TemporaryDirectory() as temporary:
+                output = Path(temporary) / f"targeted-{index}"
+                argv = [
+                    "run-tools.py",
+                    "--only-case",
+                    "02_obvious_weather",
+                    "--output-dir",
+                    str(output),
+                    "--runtime",
+                    "test-runtime",
+                ]
+                with mock.patch.object(sys, "argv", argv), mock.patch.object(
+                    tool_runner, "run_conversation", return_value=copy.deepcopy(result)
+                ):
+                    self.assertEqual(tool_runner.main(), expected)
+
     def test_safe_replay_scores_30_of_30(self):
         result = tool_runner.score_rows(copy.deepcopy(self.rows))
         self.assertTrue(result["gate_passed"])
@@ -413,6 +503,12 @@ class NeedleConstructionTests(unittest.TestCase):
 
 
 class PublicationTests(unittest.TestCase):
+    def test_httpx_live_dependency_is_declared(self):
+        requirements = (ROOT.parent / "requirements.txt").read_text(
+            encoding="utf-8"
+        )
+        self.assertRegex(requirements, r"(?m)^httpx(?:[<>=].*)?$")
+
     def test_public_markdown_local_links_resolve(self):
         repository = ROOT.parent
         checked = 0

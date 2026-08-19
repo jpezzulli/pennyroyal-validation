@@ -7,6 +7,7 @@ venv/
 *.log
 *.csv
 *.jsonl
+!validation/fixtures/reasoning-replay.jsonl
 *.sse
 *.tar.gz
 *.tar.zst
