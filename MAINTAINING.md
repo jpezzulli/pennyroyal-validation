@@ -33,12 +33,12 @@ an old result look cleaner or more comparable.
 
 ## Curated history
 
-Include a run when it is a completed qualification, a selected configuration,
-a materially different model/runtime/quantization/context/speculative path, or
-a failed configuration that establishes a durable technical boundary.
+Include a run when it is a completed qualification, a materially different
+model/runtime/quantization/context/speculative path, or a failed configuration
+that establishes a durable technical boundary.
 
 Do not include every tuning attempt. Intermediate experiments enter the
-curated history only when they explain a selected result or a reusable failure
+curated history only when they explain a published result or a reusable failure
 boundary. Mark unknown fields as unknown; never reconstruct precision from an
 unrelated run.
 

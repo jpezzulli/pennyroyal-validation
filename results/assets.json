@@ -40,7 +40,7 @@
       "size_bytes": 1257536,
       "runs": ["ds4flash0731_mapped_w2_dspark4_20260802"],
       "url": "https://github.com/jpezzulli/pennyroyal-validation/releases/download/public-baseline-2026-08-18/mapped-w2-dspark4-20260802-detailed.tar.zst",
-      "includes": "frozen and selected-settings qualifications, grades, reconstructed results, tool summaries, near-million-token result, reports, manifests, provenance, and telemetry",
+      "includes": "frozen and configuration-specific qualifications, grades, reconstructed results, tool summaries, near-million-token result, reports, manifests, provenance, and telemetry",
       "omits": "timestamped SSE streams and server logs"
     },
     {
