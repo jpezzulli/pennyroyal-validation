@@ -77,6 +77,26 @@ The two warm-ups are not scored. The nine measured requests omit
 or launcher therefore owns the measured output ceiling and reasoning defaults.
 Record those values in result provenance.
 
+The historical default remains `--execution-profile sequential`. For a
+three-user workload qualification, use the named 1-3-3-1 profile:
+
+```bash
+python3 validation/run-reasoning.py \
+  --base-url "$BASE_URL" \
+  --served-model-name "$SERVED_MODEL_NAME" \
+  --runtime exact-model-runtime-label \
+  --execution-profile three-user-1-3-3-1 \
+  --tokenizer-path /path/to/model-or-tokenizer \
+  --output-dir validation-results/reasoning-3user-YYYYMMDD-HHMMSS
+```
+
+This runs C1 alone, C2-C4 together, C5-C7 together, and C8 alone with its
+dependent correction. It does not change prompts, scoring, request parameters,
+or C8 context. The runner records wave boundaries and writes results back in
+deterministic case order. Report 3-running, 2-running, and 1-running throughput
+and speculative acceptance separately; C6 may make the second 3-running phase
+brief.
+
 Create the metadata-free packet before grading, lock qualitative grades, then
 apply mechanical caps:
 

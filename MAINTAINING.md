@@ -11,6 +11,10 @@ an old result look cleaner or more comparable.
   weight, fatal condition, warm-up, order, or concurrency shape in place.
 - A material suite change creates a new named version. Keep the prior version
   runnable and document why the successor exists.
+- The reasoning runner's `sequential` profile remains the historical default.
+  `three-user-1-3-3-1` is a separately named execution shape; changing its case
+  grouping or concurrency requires another profile name rather than silently
+  rewriting either schedule.
 - Documentation may explain a frozen case but must not alter its behavior.
 - Every published result identifies the exact repository commit and suite
   version or path.

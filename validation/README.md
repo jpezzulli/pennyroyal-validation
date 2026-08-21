@@ -34,11 +34,27 @@ omits request-level sampling and reasoning overrides so the launcher remains
 authoritative. This uncapped request contract is distinct from the earlier
 standalone 64K collector and historical 32K results.
 
+The default `sequential` execution profile preserves the historical one-case-
+at-a-time schedule. The named `three-user-1-3-3-1` profile preserves the same
+prompts, request contract, grading rubric, and deterministic result order while
+running:
+
+1. C1 alone as a clean single-request control;
+2. C2, C3, and C4 simultaneously;
+3. C5, C6, and C7 simultaneously;
+4. C8 alone, with its correction sent only after its own first response.
+
+Multi-case waves use a synchronized client barrier. Every request is allowed to
+close normally; the runner does not cancel sibling HTTP streams when another
+case finishes or fails. Results are written in C1–C8 order after each wave.
+
 Inspect without contacting a server:
 
 ```bash
 python3 validation/run-reasoning.py --list
 python3 validation/run-reasoning.py --dry-run
+python3 validation/run-reasoning.py \
+  --execution-profile three-user-1-3-3-1 --dry-run
 python3 validation/run-reasoning.py \
   --replay validation/fixtures/reasoning-replay.jsonl
 python3 validation/score-reasoning.py \
@@ -53,6 +69,7 @@ Run a new collection:
 ```bash
 python3 validation/run-reasoning.py \
   --runtime dspark4-new-run \
+  --execution-profile three-user-1-3-3-1 \
   --tokenizer-path "$MODEL_PATH" \
   --output-dir validation-results/reasoning-YYYYMMDD-HHMMSS
 ```
@@ -63,6 +80,9 @@ timings, errors, and loop events. Grade response text without runtime, token,
 timing, finish, or loop metadata; then use `score-reasoning.py` to calculate
 per-case, per-dimension, aggregate, and fatal-capped results. Reviewer judgment
 means a nondeterministic grader is not expected to reproduce 97.07 exactly.
+Every result must record its execution profile. A three-user result should
+report the 3-running, 2-running, and 1-running phases separately because a
+short case such as C6 naturally ends the second three-request interval early.
 
 Create the text-only blinded packet before grading:
 

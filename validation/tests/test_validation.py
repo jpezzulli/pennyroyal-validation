@@ -5,6 +5,8 @@ import re
 import subprocess
 import sys
 import tempfile
+import threading
+import time
 import unittest
 from pathlib import Path
 from unittest import mock
@@ -73,6 +75,87 @@ class ReasoningSuiteTests(unittest.TestCase):
     def test_frozen_request_count(self):
         self.assertEqual(len(reasoning_cases.CASES), 8)
         self.assertEqual(len(reasoning_runner.measured_plan(reasoning_cases)), 9)
+
+    def test_reasoning_execution_profiles_preserve_case_order(self):
+        sequential = reasoning_runner.execution_waves(
+            reasoning_cases, reasoning_runner.SEQUENTIAL_PROFILE
+        )
+        self.assertEqual(
+            [wave["case_ids"] for wave in sequential],
+            [[f"C{index}"] for index in range(1, 9)],
+        )
+        three_user = reasoning_runner.execution_waves(
+            reasoning_cases, reasoning_runner.THREE_USER_PROFILE
+        )
+        self.assertEqual(
+            [wave["case_ids"] for wave in three_user],
+            [["C1"], ["C2", "C3", "C4"], ["C5", "C6", "C7"], ["C8"]],
+        )
+        self.assertEqual(
+            [case_id for wave in three_user for case_id in wave["case_ids"]],
+            [f"C{index}" for index in range(1, 9)],
+        )
+        self.assertEqual(
+            [wave["concurrency"] for wave in three_user], [1, 3, 3, 1]
+        )
+
+    def test_three_user_wave_starts_three_collectors_together(self):
+        cases = reasoning_cases.CASES[1:4]
+        lock = threading.Lock()
+        active = 0
+        peak_active = 0
+
+        def collector(case, barrier):
+            nonlocal active, peak_active
+            barrier.wait()
+            with lock:
+                active += 1
+                peak_active = max(peak_active, active)
+            time.sleep(0.02)
+            with lock:
+                active -= 1
+            return [case["id"]]
+
+        result = reasoning_runner.execute_wave(cases, collector)
+        self.assertEqual(list(result), ["C2", "C3", "C4"])
+        self.assertEqual(peak_active, 3)
+
+    def test_three_user_dry_run_reports_1_3_3_1_schedule(self):
+        completed = subprocess.run(
+            [
+                sys.executable,
+                str(ROOT / "run-reasoning.py"),
+                "--dry-run",
+                "--execution-profile",
+                reasoning_runner.THREE_USER_PROFILE,
+            ],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(completed.returncode, 0, completed.stderr)
+        payload = json.loads(completed.stdout)
+        self.assertEqual(
+            payload["execution_profile"], reasoning_runner.THREE_USER_PROFILE
+        )
+        self.assertEqual(
+            [wave["case_ids"] for wave in payload["execution_waves"]],
+            [["C1"], ["C2", "C3", "C4"], ["C5", "C6", "C7"], ["C8"]],
+        )
+        self.assertEqual(len(payload["measured_requests"]), 9)
+
+    def test_sequential_list_keeps_historical_output_shape(self):
+        completed = subprocess.run(
+            [sys.executable, str(ROOT / "run-reasoning.py"), "--list"],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(completed.returncode, 0, completed.stderr)
+        lines = completed.stdout.splitlines()
+        self.assertEqual(lines[0], "c1-r1\tC1\tturn 1")
+        self.assertEqual(lines[-1], "c8-r1-correction\tC8\tturn 2")
+        self.assertEqual(len(lines), 9)
 
     def test_measured_requests_have_no_output_token_cap(self):
         payload = reasoning_runner.measured_payload("pennyroyal", [])
