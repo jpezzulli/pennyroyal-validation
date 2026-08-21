@@ -2,11 +2,13 @@
 """Direct OpenAI-compatible streaming collector for the frozen suite."""
 
 import argparse
+from concurrent.futures import ThreadPoolExecutor
 import importlib.util
 import json
 import os
 import re
 import sys
+from threading import Barrier
 import time
 import urllib.error
 import urllib.request
@@ -16,6 +18,12 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT))
 from common import base_url, read_jsonl, served_model_name, write_json  # noqa: E402
+
+
+SEQUENTIAL_PROFILE = "sequential"
+THREE_USER_PROFILE = "three-user-1-3-3-1"
+EXECUTION_PROFILES = (SEQUENTIAL_PROFILE, THREE_USER_PROFILE)
+START_BARRIER_TIMEOUT_SECONDS = 30
 
 
 def load_suite(path):
@@ -260,6 +268,110 @@ def measured_plan(suite):
     return plan
 
 
+def execution_waves(suite, profile):
+    case_ids = [case["id"] for case in suite.CASES]
+    if profile == SEQUENTIAL_PROFILE:
+        groups = [[case_id] for case_id in case_ids]
+    elif profile == THREE_USER_PROFILE:
+        expected = [f"C{index}" for index in range(1, 9)]
+        if case_ids != expected:
+            raise ValueError(
+                f"{THREE_USER_PROFILE} requires the frozen C1-C8 order: "
+                f"{case_ids!r} != {expected!r}"
+            )
+        groups = [["C1"], ["C2", "C3", "C4"], ["C5", "C6", "C7"], ["C8"]]
+    else:
+        raise ValueError(f"unknown execution profile: {profile}")
+    return [
+        {
+            "wave": index,
+            "case_ids": group,
+            "concurrency": len(group),
+        }
+        for index, group in enumerate(groups, start=1)
+    ]
+
+
+def execute_wave(cases, collector):
+    """Run one case wave and return results keyed by case ID.
+
+    A barrier synchronizes the first request in multi-case waves. Futures are
+    always allowed to finish; the harness never cancels sibling HTTP streams.
+    """
+
+    if len(cases) == 1:
+        case = cases[0]
+        return {case["id"]: collector(case, None)}
+
+    barrier = Barrier(len(cases))
+    with ThreadPoolExecutor(max_workers=len(cases)) as executor:
+        futures = {
+            case["id"]: executor.submit(collector, case, barrier)
+            for case in cases
+        }
+        return {case_id: future.result() for case_id, future in futures.items()}
+
+
+def print_result(result):
+    print(
+        f"END {result['request_id']} wall={result['wall_seconds']:.2f}s "
+        f"tokens={result['local_generated_tokens']} "
+        f"finish={result['finish_reason']} "
+        f"termination={result['termination']} error={result['error']}",
+        flush=True,
+    )
+
+
+def collect_case(
+    case,
+    start_barrier,
+    *,
+    suite,
+    base,
+    model,
+    raw_dir,
+    tokenizer,
+    heat_sentinel,
+):
+    request_id = f"{case['id'].lower()}-r1"
+    payload = measured_payload(model, messages(suite.SYSTEM, case["prompt"]))
+    print(f"START {request_id} {case['title']}", flush=True)
+    if start_barrier is not None:
+        start_barrier.wait(timeout=START_BARRIER_TIMEOUT_SECONDS)
+    result = stream_chat(
+        base, payload, raw_dir, request_id, tokenizer, heat_sentinel
+    )
+    result.update({"kind": "measured", "case_id": case["id"], "turn": 1})
+    print_result(result)
+    collected = [result]
+    if case["id"] != "C8" or result["termination"] or result["error"]:
+        return collected
+
+    assistant = {"role": "assistant", "content": result["content"]}
+    if result["reasoning_content"]:
+        assistant["reasoning_content"] = result["reasoning_content"]
+    correction_id = "c8-r1-correction"
+    correction_messages = messages(suite.SYSTEM, case["prompt"])
+    correction_messages.extend([
+        assistant,
+        {"role": "user", "content": case["correction"]},
+    ])
+    correction_payload = measured_payload(model, correction_messages)
+    print(f"START {correction_id}", flush=True)
+    corrected = stream_chat(
+        base,
+        correction_payload,
+        raw_dir,
+        correction_id,
+        tokenizer,
+        heat_sentinel,
+    )
+    corrected.update({"kind": "measured", "case_id": "C8", "turn": 2})
+    print_result(corrected)
+    collected.append(corrected)
+    return collected
+
+
 def replay_manifest(path, suite):
     rows = read_jsonl(path)
     measured = [row for row in rows if row.get("kind") == "measured"]
@@ -293,6 +405,15 @@ def main():
     parser.add_argument("--model", "--served-model-name", dest="model", default=served_model_name())
     parser.add_argument("--heat-sentinel", type=Path)
     parser.add_argument("--tokenizer-path")
+    parser.add_argument(
+        "--execution-profile",
+        choices=EXECUTION_PROFILES,
+        default=SEQUENTIAL_PROFILE,
+        help=(
+            "measured-case schedule; three-user-1-3-3-1 runs C1 alone, "
+            "C2-C4 together, C5-C7 together, then C8 alone"
+        ),
+    )
     parser.add_argument("--list", action="store_true", help="list deterministic request IDs")
     parser.add_argument("--dry-run", action="store_true", help="print the request plan without contacting a server")
     parser.add_argument("--replay", type=Path, help="validate an existing results.jsonl without contacting a server")
@@ -300,9 +421,25 @@ def main():
 
     suite = load_suite(args.suite)
     plan = measured_plan(suite)
+    waves = execution_waves(suite, args.execution_profile)
     if args.list:
+        if args.execution_profile == SEQUENTIAL_PROFILE:
+            for item in plan:
+                print(
+                    f"{item['request_id']}\t{item['case_id']}\tturn {item['turn']}"
+                )
+            return 0
+        wave_by_case = {
+            case_id: wave
+            for wave in waves
+            for case_id in wave["case_ids"]
+        }
         for item in plan:
-            print(f"{item['request_id']}\t{item['case_id']}\tturn {item['turn']}")
+            wave = wave_by_case[item["case_id"]]
+            print(
+                f"{item['request_id']}\t{item['case_id']}\tturn {item['turn']}\t"
+                f"wave {wave['wave']}\tconcurrency {wave['concurrency']}"
+            )
         return 0
     if args.dry_run:
         print(json.dumps({
@@ -310,6 +447,8 @@ def main():
             "base_url": args.base,
             "served_model_name": args.model,
             "warmups": 2,
+            "execution_profile": args.execution_profile,
+            "execution_waves": waves,
             "measured_requests": plan,
             "request_parameters": {
                 "max_tokens": None,
@@ -385,57 +524,43 @@ def main():
         if result["error"]:
             return 2
 
-    for case in suite.CASES:
-        request_id = f"{case['id'].lower()}-r1"
-        payload = measured_payload(
-            args.model, messages(suite.SYSTEM, case["prompt"])
+    cases_by_id = {case["id"]: case for case in suite.CASES}
+    for wave in waves:
+        wave_cases = [cases_by_id[case_id] for case_id in wave["case_ids"]]
+        append_jsonl(events_path, {
+            "event": "wave_start",
+            "epoch": time.time(),
+            "execution_profile": args.execution_profile,
+            **wave,
+        })
+        collected_by_case = execute_wave(
+            wave_cases,
+            lambda case, barrier: collect_case(
+                case,
+                barrier,
+                suite=suite,
+                base=args.base,
+                model=args.model,
+                raw_dir=raw_dir,
+                tokenizer=tokenizer,
+                heat_sentinel=heat_sentinel,
+            ),
         )
-        print(f"START {request_id} {case['title']}", flush=True)
-        result = stream_chat(
-            args.base, payload, raw_dir, request_id, tokenizer, heat_sentinel
-        )
-        result.update({"kind": "measured", "case_id": case["id"], "turn": 1})
-        append_jsonl(results_path, result)
-        print(
-            f"END {request_id} wall={result['wall_seconds']:.2f}s "
-            f"tokens={result['local_generated_tokens']} finish={result['finish_reason']} "
-            f"termination={result['termination']} error={result['error']}",
-            flush=True,
-        )
-        if result["termination"] == "heat_guard":
+        wave_results = []
+        for case_id in wave["case_ids"]:
+            case_results = collected_by_case[case_id]
+            wave_results.extend(case_results)
+            for result in case_results:
+                append_jsonl(results_path, result)
+        append_jsonl(events_path, {
+            "event": "wave_complete",
+            "epoch": time.time(),
+            "execution_profile": args.execution_profile,
+            **wave,
+        })
+        if any(result["termination"] == "heat_guard" for result in wave_results):
             return 75
-        if result["error"]:
-            return 2
-        if case["id"] != "C8":
-            continue
-
-        assistant = {"role": "assistant", "content": result["content"]}
-        if result["reasoning_content"]:
-            assistant["reasoning_content"] = result["reasoning_content"]
-        correction_id = "c8-r1-correction"
-        correction_messages = messages(suite.SYSTEM, case["prompt"])
-        correction_messages.extend([
-            assistant,
-            {"role": "user", "content": case["correction"]},
-        ])
-        correction_payload = measured_payload(args.model, correction_messages)
-        print(f"START {correction_id}", flush=True)
-        corrected = stream_chat(
-            args.base, correction_payload, raw_dir, correction_id,
-            tokenizer, heat_sentinel
-        )
-        corrected.update({"kind": "measured", "case_id": "C8", "turn": 2})
-        append_jsonl(results_path, corrected)
-        print(
-            f"END {correction_id} wall={corrected['wall_seconds']:.2f}s "
-            f"tokens={corrected['local_generated_tokens']} "
-            f"finish={corrected['finish_reason']} "
-            f"termination={corrected['termination']} error={corrected['error']}",
-            flush=True,
-        )
-        if corrected["termination"] == "heat_guard":
-            return 75
-        if corrected["error"]:
+        if any(result["error"] for result in wave_results):
             return 2
 
     append_jsonl(events_path, {"event": "suite_complete", "epoch": time.time()})
@@ -445,6 +570,8 @@ def main():
         "served_model_name": args.model,
         "suite_source": str(args.suite),
         "warmups": 2,
+        "execution_profile": args.execution_profile,
+        "execution_waves": waves,
         "measured_requests": 9,
         "measured_max_tokens": None,
         "measured_max_tokens_field": "omitted",

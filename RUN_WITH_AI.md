@@ -81,6 +81,8 @@ Then run the non-inference checks:
 ```bash
 python3 -m unittest discover -s validation/tests -v
 python3 validation/run-reasoning.py --dry-run
+python3 validation/run-reasoning.py \
+  --execution-profile three-user-1-3-3-1 --dry-run
 python3 validation/run-tools.py --dry-run
 python3 validation/run-needle.py --smoke
 python3 scripts/validate_repository.py
@@ -115,7 +117,8 @@ guessing.
 Prepare the exact command for the most likely requested suite, but do not run
 it. The operator may choose among:
 
-- current reasoning qualification;
+- current reasoning qualification using the historical sequential profile;
+- current reasoning qualification using the named three-user 1-3-3-1 profile;
 - current 30-invocation tool and agent qualification;
 - one targeted ordinary tool case;
 - sealed agentic control;

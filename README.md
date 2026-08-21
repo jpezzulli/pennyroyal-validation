@@ -123,6 +123,8 @@ python3 -m pip install -r requirements.txt
 
 python3 validation/run-reasoning.py --list
 python3 validation/run-reasoning.py --dry-run
+python3 validation/run-reasoning.py \
+  --execution-profile three-user-1-3-3-1 --dry-run
 python3 validation/run-tools.py --list
 python3 validation/run-tools.py --dry-run
 python3 validation/run-needle.py --smoke
