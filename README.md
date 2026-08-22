@@ -109,6 +109,11 @@ sizes, qualification notes, machine-readable records, and downloadable result
 bundles. Scores with different denominators belong to different frozen suite
 versions and are intentionally shown as recorded.
 
+The [current deployment shape](docs/current-deployment.md) records the selected
+SGLang, DFlash2, Mamba, HiCache, and NIXL configuration and the policy for
+refreshing it from upstream without turning the qualified runtime into a
+permanent fork.
+
 ## Try it without a model
 
 Clone the repository, create an environment, and inspect the run plans. These
@@ -158,6 +163,7 @@ Code, and other clients differ from the direct OpenAI Chat Completions suite.
 |---|---|
 | `validation/` | Current reasoning, tool, agent, and long-context suites |
 | `docs/cases/` | Human explanations for every frozen case and exact tool expectation |
+| `docs/current-deployment.md` | Selected portable runtime shape, cache architecture, and upstream refresh policy |
 | `results/` | Readable history, machine-readable run records, and release-asset index |
 | `performance/` | Reusable prefill and decode clients |
 | `reasoning/`, `tools/` | Additional frozen collectors and regression cases |
