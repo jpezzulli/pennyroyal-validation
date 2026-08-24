@@ -1,0 +1,164 @@
+{
+  "schema_version": 1,
+  "run_id": "deepseek_v4_flash_0731_freetoken_native_dspark_20260824",
+  "date": "2026-08-24",
+  "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+  "hardware": "one NVIDIA RTX PRO 6000 Blackwell Workstation Edition, SM120; dual Xeon Platinum 8358 host",
+  "runtime": {
+    "name": "custom FreeToken 0.1.2 with native DeepSeek-V4 DSpARK",
+    "upstream_baseline": "184a4f114d00b7805274841488f2906233b5a961",
+    "prefill_swa_commit": "466dee73b0d3dc963c5d03447ace0985ccc81c7a",
+    "prefill_swa_upstream_issue": "https://github.com/FlashML-org/FreeToken/issues/115",
+    "prefill_swa_upstream_pr": "https://github.com/FlashML-org/FreeToken/pull/116",
+    "dspark_commit": "aac7cc8ee89cb7a52f82fd56cdd505d9eec5eb84",
+    "openai_output_default_commit": "919531211e504db4082cf3f5812e02f0c42fee6c",
+    "validation_suite": "reasoning-context-v2",
+    "validation_commit": "71f43d5",
+    "context_tokens": 524288,
+    "max_running_requests": 4,
+    "compute_dtype": "bfloat16",
+    "expert_format": "checkpoint FP4",
+    "full_history_tokens": 524288,
+    "requested_prefill_tokens": 24576,
+    "effective_prefill_tokens": 24576,
+    "swa_tokens": 52096,
+    "moe_cache_slots": 4602,
+    "memory_ratio": 0.90,
+    "speculation": {
+      "method": "native DSpARK from checkpoint-embedded mtp stages",
+      "verification_tokens": 6,
+      "draft_tokens": 5,
+      "stages": 3,
+      "graph_batches": [1, 2, 4],
+      "eligible_mode": "all-greedy batches through four requests",
+      "fallback_modes": ["sampling", "batch above four", "short output or context tail", "disabled or unsupported geometry"]
+    },
+    "moe_decode": {
+      "policy": "one launch-wide backend for ordinary, fallback, and speculative verification",
+      "selected": "Triton",
+      "flashinfer_cutlass": "implemented and retained as explicit whole-launch override",
+      "deepgemm": "considered but not integrated"
+    }
+  },
+  "performance": {
+    "decode_1x_1024": {
+      "prompt_tokens": 121,
+      "completion_tokens": 1024,
+      "ttft_seconds": 5.328439712524414,
+      "after_first_token_tps": 34.55204148651367,
+      "whole_request_tps": 29.28651802435259
+    },
+    "decode_3x_1024": {
+      "completion_tokens": 3072,
+      "wall_seconds": 70.19772601127625,
+      "aggregate_tps": 43.76210134650982,
+      "per_lane_ttft_seconds": [5.33490514755249, 10.826906442642212, 10.826681137084961],
+      "per_lane_after_first_token_tps": [15.78801594889211, 17.248540591675148, 17.248412651033945]
+    },
+    "prefill_64k_cold": {
+      "prompt_tokens": 64137,
+      "ttft_seconds": 23.623778104782104,
+      "completion_tokens": 512,
+      "decode_tps": 34.18588101061015
+    },
+    "prefill_64k_cached_repeat": {
+      "prompt_tokens": 64137,
+      "cached_tokens": 64128,
+      "ttft_seconds": 0.67738938331604,
+      "completion_tokens": 512,
+      "decode_tps": 33.40097279615865,
+      "ttft_speedup": 34.87473923659103,
+      "wall_speedup": 2.4115978941724507
+    }
+  },
+  "speculative_cumulative": {
+    "scope": "end-of-instance cumulative counters; not one isolated benchmark",
+    "proposed_drafts": 1745,
+    "accepted_drafts": 1123,
+    "verifications": 349,
+    "emitted_tokens": 1471,
+    "fallback_forwards": 144278,
+    "accepted_draft_rate": 0.6436,
+    "effective_emitted_tokens_per_verification": 4.2149
+  },
+  "reasoning": {
+    "suite": "reasoning-context-v2",
+    "reasoning_effort": "max",
+    "grading_state": "post-hoc operational grade; not blind-locked",
+    "final_score": 95.67,
+    "measured_requests": 9,
+    "prompt_tokens": 4000,
+    "completion_tokens": 146320,
+    "summed_request_seconds": 4864.711268424988,
+    "aggregate_post_first_token_tps": 30.374607070169937,
+    "errors": 0,
+    "confirmed_loops": 0,
+    "valid_length_exhaustions": 0,
+    "invalid_infrastructure_attempts": [
+      "initial C4 at 32768 completion tokens",
+      "initial C5 at 32768 completion tokens",
+      "first targeted C5 retry at 32768 completion tokens before Chat Completions inherited the configured server default"
+    ],
+    "case_scores": {
+      "C1": 100.0,
+      "C2": 100.0,
+      "C3": 92.3913,
+      "C4": 90.7609,
+      "C5": 85.3261,
+      "C6": 100.0,
+      "C7": 100.0,
+      "C8": 100.0
+    },
+    "final_targeted_cases": {
+      "C4": {"completion_tokens": 32124, "ttft_seconds": 5.495441392995417, "wall_seconds": 1021.558108329773, "decode_tps": 31.61517595843209},
+      "C5": {"completion_tokens": 45377, "ttft_seconds": 5.367352444038261, "wall_seconds": 1486.611665725708, "decode_tps": 30.63370410480787}
+    }
+  },
+  "tools": {
+    "invocations": 30,
+    "schedule_integrity": "30/30",
+    "automatic_passes": 25,
+    "semantic_passes": 28,
+    "exact_tool_selection_and_arguments": 29,
+    "parseable_tool_arguments": 30,
+    "errors": 0,
+    "external_side_effects": 0,
+    "completion_tokens": 6794,
+    "campaign_wall_seconds": 501.17770433425903,
+    "aggregate_end_to_end_tps": 13.556069915410205,
+    "model_turn_tps_mean": 10.475446601845611,
+    "model_turn_tps_median": 9.901939653138948,
+    "ttft": null
+  },
+  "telemetry": {
+    "basic": {"host_power_avg_w": 480.67664670658684, "host_power_peak_w": 566.0, "gpu_power_avg_w": 179.36796407185628, "gpu_power_peak_w": 373.2, "gpu_util_avg_percent": 95.47305389221557, "vram_peak_mib": 92233.0},
+    "original_reasoning": {"host_power_avg_w": 486.6619, "host_power_peak_w": 610.0, "gpu_power_avg_w": 153.2909, "gpu_power_peak_w": 176.26, "gpu_util_avg_percent": 97.5008, "vram_peak_mib": 92233.0},
+    "final_c4": {"host_power_avg_w": 461.968, "host_power_peak_w": 568.0, "gpu_power_avg_w": 157.067, "gpu_power_peak_w": 178.72, "gpu_util_avg_percent": 97.769, "vram_peak_mib": 83013.0},
+    "final_c5": {"host_power_avg_w": 465.516, "host_power_peak_w": 571.0, "gpu_power_avg_w": 154.676, "gpu_power_peak_w": 174.66, "gpu_util_avg_percent": 97.647, "vram_peak_mib": 83011.0},
+    "tools": {"host_power_avg_w": 498.96007984031934, "host_power_peak_w": 599.0, "gpu_power_avg_w": 120.2464870259481, "gpu_power_peak_w": 318.97, "gpu_util_avg_percent": 97.35129740518963, "vram_peak_mib": 92233.0}
+  },
+  "adversarial_reviews": {
+    "rounds": 3,
+    "round_1_substantial_findings": 4,
+    "round_1_findings_corrected": true,
+    "round_2_substantial_findings": 0,
+    "round_2_tests": "36 passed, 2 CUDA-only skipped",
+    "round_3_substantial_findings": 0,
+    "round_3_minor_findings": 1,
+    "round_3_minor_finding_corrected": true
+  },
+  "evidence_roots": [
+    "/opt/ai-artifacts/logs/freetoken-dspark-validation-20260824-001435",
+    "/opt/ai-artifacts/logs/freetoken-dspark-reasoning-c4c5-uncapped-20260824",
+    "/opt/ai-artifacts/logs/freetoken-dspark-reasoning-c5-uncapped-final-20260824"
+  ],
+  "evidence_gaps": [
+    "Reasoning grade was post-hoc rather than independently blind-locked",
+    "Basic profile used model sampling and ordinary fallback rather than greedy DSpARK",
+    "Cumulative speculative counters are not request-isolated",
+    "No controlled final ordinary-greedy versus DSpARK A/B",
+    "No preserved end-to-end Triton versus FlashInfer report",
+    "No 490K retrieval or full four-lane reasoning qualification",
+    "FreeToken DSpARK and output-default commits were local and unpushed at publication time"
+  ]
+}
