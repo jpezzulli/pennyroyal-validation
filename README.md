@@ -116,19 +116,18 @@ permanent fork.
 
 ## Try it without a model
 
-Clone the repository, create an environment, and inspect the run plans. These
-commands do not contact a model server:
+Clone the repository and inspect the run plans. The core reasoning, tool, and
+performance collectors use the Python standard library; no environment or
+Transformers installation is required for these commands, and they do not
+contact a model server:
 
 ```bash
 git clone https://github.com/jpezzulli/pennyroyal-validation.git
 cd pennyroyal-validation
-python3 -m venv .venv
-source .venv/bin/activate
-python3 -m pip install -r requirements.txt
 
-python3 validation/run-reasoning.py --list
-python3 validation/run-reasoning.py --dry-run
-python3 validation/run-reasoning.py \
+python3 validation/run-reasoning-context-v2.py --list
+python3 validation/run-reasoning-context-v2.py --dry-run
+python3 validation/run-reasoning-context-v2.py \
   --execution-profile three-user-1-3-3-1 --dry-run
 python3 validation/run-tools.py --list
 python3 validation/run-tools.py --dry-run
