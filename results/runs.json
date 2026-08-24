@@ -3,6 +3,70 @@
   "purpose": "Curated model and runtime qualification history; not a leaderboard",
   "runs": [
     {
+      "id": "deepseek_v4_flash_0731_freetoken_native_dspark_20260824",
+      "date": "2026-08-24",
+      "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+      "checkpoint": "deepseek-ai/DeepSeek-V4-Flash-0731",
+      "runtime": "custom FreeToken 0.1.2 with native DSpARK",
+      "runtime_commit": "919531211e504db4082cf3f5812e02f0c42fee6c",
+      "hardware": "one NVIDIA RTX PRO 6000 Blackwell Workstation Edition, SM120; dual Xeon Platinum 8358 host",
+      "launch_shape": "BF16 compute; checkpoint FP4 experts; 524288 full history; 24576 prefill; 52096 SWA; TP1; four requests; 4602 movable expert slots; memory ratio 0.90; DSpARK anchor plus five drafts; graphs 1/2/4; launch-wide Triton decode MoE",
+      "weight_format": "DeepSeek FP4 routed experts with checkpoint-embedded mtp DSpARK stages",
+      "target_kv": "DeepSeek-V4 compressed full-history plus 128-token SWA geometry",
+      "draft_kv": "DSpARK context-only window layers sharing target cache/offload infrastructure",
+      "context_admission_tokens": 524288,
+      "actual_kv_capacity_tokens": 524288,
+      "speculation": {
+        "method": "native DSpARK",
+        "embedded_stages": 3,
+        "max_draft_tokens": 5,
+        "verification_tokens": 6,
+        "cumulative_accepted_draft_rate": 0.6436,
+        "cumulative_effective_emitted_tokens_per_verification": 4.2149,
+        "counter_scope": "end-of-instance cumulative, not request-isolated"
+      },
+      "suite_commit": "71f43d5 reasoning-context-v2",
+      "reasoning": {
+        "grading_state": "post-hoc operational grade; not blind-locked",
+        "final_score": 95.67,
+        "completion_tokens": 146320,
+        "aggregate_post_first_token_tps": 30.374607070169937,
+        "fatal_cases": [],
+        "failures_or_truncations": 0,
+        "invalid_infrastructure_attempts": 3
+      },
+      "tools": {
+        "automatic_score": "25/30",
+        "semantic_score": "28/30",
+        "exact_calls": "29/30",
+        "parseable_arguments": "30/30"
+      },
+      "performance": {
+        "decode_1024_1x_after_first_token_tps": 34.55204148651367,
+        "decode_3x_aggregate_tps": 43.76210134650982,
+        "prefill_64k_prompt_tokens": 64137,
+        "prefill_64k_cold_ttft_seconds": 23.623778104782104,
+        "prefill_64k_cached_tokens": 64128,
+        "prefill_64k_cached_ttft_seconds": 0.67738938331604
+      },
+      "custom_implementation": "native SGLang-adapted DSpARK load/propose/verify/accept/commit path; graph-safe movable-slot MoE; launch-wide Triton or explicit FlashInfer CUTLASS backend; DSV4 prefill-derived SWA geometry",
+      "evidence_roots": [
+        "/opt/ai-artifacts/logs/freetoken-dspark-validation-20260824-001435",
+        "/opt/ai-artifacts/logs/freetoken-dspark-reasoning-c4c5-uncapped-20260824",
+        "/opt/ai-artifacts/logs/freetoken-dspark-reasoning-c5-uncapped-final-20260824"
+      ],
+      "evidence_gaps": [
+        "Reasoning grade was post-hoc rather than independently blind-locked",
+        "Basic profile used ordinary fallback rather than greedy DSpARK",
+        "Speculative counters are cumulative rather than request-isolated",
+        "No controlled final ordinary-greedy versus DSpARK A/B",
+        "No preserved end-to-end Triton versus FlashInfer report",
+        "No 490K retrieval or full four-lane reasoning qualification",
+        "FreeToken implementation commits were local and unpushed at publication time"
+      ],
+      "comparability": "Materially different custom runtime and reasoning-context-v2 contract; not a controlled comparison with SGLang DFlash2, mapped-W2 DSpARK, or historical blind-scored runs"
+    },
+    {
       "id": "qwen38_27b_uncensored_fp8_sglang_dflash2_hicache_nixl_20260821",
       "date": "2026-08-21",
       "model": "orcarouter/Qwen3.8-27B-Uncensored-FP8",

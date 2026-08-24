@@ -26,6 +26,9 @@ def load(name, path):
 common = load("validation_common", ROOT / "common.py")
 reasoning_cases = load("reasoning_cases", ROOT / "cases/reasoning.py")
 reasoning_runner = load("reasoning_runner", ROOT / "run-reasoning.py")
+reasoning_context_v2 = load(
+    "reasoning_context_v2", ROOT / "run-reasoning-context-v2.py"
+)
 reasoning_scorer = load("reasoning_scorer", ROOT / "score-reasoning.py")
 tool_runner = load("tool_runner", ROOT / "run-tools.py")
 needle_runner = load("needle_runner", ROOT / "run-needle.py")
@@ -215,6 +218,108 @@ class ReasoningSuiteTests(unittest.TestCase):
         supplied = set(self.grade["cases"]["C8"]) - {"note"}
         self.assertEqual(supplied, expected)
         self.assertEqual(self.score()["final_score"], 97.07)
+
+
+class ReasoningContextV2Tests(unittest.TestCase):
+    def setUp(self):
+        self.rubric = json.loads(
+            (ROOT / "cases/reasoning-context-v2-rubric.json").read_text()
+        )
+
+    def test_named_successor_preserves_frozen_cases(self):
+        self.assertEqual(reasoning_context_v2.SUITE_ID, "reasoning-context-v2")
+        self.assertEqual(len(reasoning_cases.CASES), 8)
+        self.assertEqual(
+            len(reasoning_context_v2.measured_plan(reasoning_cases)), 9
+        )
+
+    def test_measured_payload_has_no_artificial_cap(self):
+        payload = reasoning_context_v2.measured_payload("pennyroyal", [], "max")
+        self.assertEqual(payload["reasoning_effort"], "max")
+        self.assertNotIn("max_tokens", payload)
+        self.assertNotIn("max_completion_tokens", payload)
+
+    def test_dependency_free_loop_tokenizer_is_stable(self):
+        tokenizer = reasoning_context_v2.EqualityTokenizer()
+        self.assertEqual(
+            tokenizer.encode("alpha + beta = 3"),
+            ["alpha", "+", "beta", "=", "3"],
+        )
+
+    def test_targeted_cases_preserve_frozen_order(self):
+        waves = reasoning_context_v2.execution_waves(
+            reasoning_cases,
+            reasoning_context_v2.SEQUENTIAL_PROFILE,
+            ["C5", "C4"],
+        )
+        self.assertEqual([wave["case_ids"] for wave in waves], [["C4"], ["C5"]])
+
+    def test_v2_removes_only_output_exhaustion_cap(self):
+        historical = json.loads((ROOT / "cases/reasoning-rubric.json").read_text())
+        cap = "repetitive_32768_exhaustion_without_usable_answer"
+        self.assertIn(cap, historical["fatal_caps"])
+        self.assertNotIn(cap, self.rubric["fatal_caps"])
+        self.assertEqual(
+            self.rubric["fatal_caps"],
+            {"case_specific_fatal": 35, "confirmed_reasoning_loop": 20},
+        )
+
+    def test_targeted_max_effort_dry_run(self):
+        completed = subprocess.run(
+            [
+                sys.executable,
+                str(ROOT / "run-reasoning-context-v2.py"),
+                "--case",
+                "C5",
+                "--case",
+                "C4",
+                "--reasoning-effort",
+                "max",
+                "--dry-run",
+            ],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(completed.returncode, 0, completed.stderr)
+        payload = json.loads(completed.stdout)
+        self.assertEqual(payload["suite_id"], "reasoning-context-v2")
+        self.assertEqual(
+            [wave["case_ids"] for wave in payload["execution_waves"]],
+            [["C4"], ["C5"]],
+        )
+        self.assertEqual(
+            payload["request_parameters"]["sampling_overrides"],
+            {"reasoning_effort": "max"},
+        )
+
+    def test_replay_rejects_output_budget_truncation(self):
+        rows = [
+            json.loads(line)
+            for line in (ROOT / "fixtures/reasoning-replay.jsonl").read_text().splitlines()
+        ]
+        rows[0]["finish_reason"] = "length"
+        with tempfile.TemporaryDirectory() as temp_dir:
+            replay = Path(temp_dir) / "truncated.jsonl"
+            replay.write_text(
+                "".join(json.dumps(row) + "\n" for row in rows),
+                encoding="utf-8",
+            )
+            completed = subprocess.run(
+                [
+                    sys.executable,
+                    str(ROOT / "run-reasoning-context-v2.py"),
+                    "--replay",
+                    str(replay),
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+        self.assertEqual(completed.returncode, 1, completed.stderr)
+        manifest = json.loads(completed.stdout)
+        self.assertFalse(manifest["gate_passed"])
+        self.assertEqual(manifest["truncated_requests"], ["c1-r1"])
 
 
 class ToolSuiteTests(unittest.TestCase):

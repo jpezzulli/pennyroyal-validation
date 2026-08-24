@@ -4,7 +4,7 @@
 
 | Suite | Capability |
 |---|---|
-| Current reasoning | Closed-book diagnosis, evidence ordering, constrained optimization, scheduling proof, idempotent transaction design, rule-based release, probability bounds, and multi-turn correction |
+| Reasoning context v2 | Closed-book diagnosis, evidence ordering, constrained optimization, scheduling proof, idempotent transaction design, rule-based release, probability bounds, and multi-turn correction without an artificial output-exhaustion score |
 | Current tools and agents | Direct answers, exact tool choice and arguments, clarification, dependency ordering, recovery, untrusted output, invalid input, one-shot control, JSON, arithmetic, delegated synthesis, long-context retrieval, and concurrent main/subagent work |
 | Sealed controls | A stateful inspect-create-inspect-revise-inspect artifact workflow and a fixed natural-decode instrument |
 | Near-million-token needle | Tokenizer-exact admission, retrieval, response-field extraction, prefill/decode timing, and immediate post-run health |
@@ -48,45 +48,48 @@ The suite runners do not require or invent an API credential. If an
 OpenAI-compatible gateway insists on a nonempty bearer token, configure that
 gateway or client outside the frozen case definitions.
 
-## Current reasoning suite
+## Reasoning context v2
 
 Inspect without inference:
 
 ```bash
-python3 validation/run-reasoning.py --list
-python3 validation/run-reasoning.py --dry-run
-python3 validation/run-reasoning.py \
+python3 validation/run-reasoning-context-v2.py --list
+python3 validation/run-reasoning-context-v2.py --dry-run
+python3 validation/run-reasoning-context-v2.py \
   --replay validation/fixtures/reasoning-replay.jsonl
 python3 validation/score-reasoning.py \
-  --grade validation/fixtures/reasoning-dspark4-grade.json
+  --grade validation/fixtures/reasoning-dspark4-grade.json \
+  --rubric validation/cases/reasoning-context-v2-rubric.json
 ```
 
 Collect a new run:
 
 ```bash
-python3 validation/run-reasoning.py \
+python3 validation/run-reasoning-context-v2.py \
   --base-url "$BASE_URL" \
   --served-model-name "$SERVED_MODEL_NAME" \
   --runtime exact-model-runtime-label \
-  --tokenizer-path /path/to/model-or-tokenizer \
   --output-dir validation-results/reasoning-YYYYMMDD-HHMMSS
 ```
 
-The two warm-ups are not scored. The nine measured requests omit
-`max_tokens`, request-level sampling, and reasoning overrides. The endpoint
-or launcher therefore owns the measured output ceiling and reasoning defaults.
-Record those values in result provenance.
+The two warm-ups are not scored. Measured requests omit `max_tokens` and
+sampling fields. An optional `--reasoning-effort` override is explicit in every
+request and recorded in the manifest; otherwise the runtime default applies.
+The endpoint or launcher must default an omitted output budget to the remaining model
+context. Any measured `finish_reason=length` invalidates the collection and
+requires a rerun; it is not scored as a model or loop failure. Record the
+runtime context and reasoning defaults in result provenance. Loop detection
+uses a dependency-free equality tokenizer; server usage remains authoritative.
 
 The historical default remains `--execution-profile sequential`. For a
 three-user workload qualification, use the named 1-3-3-1 profile:
 
 ```bash
-python3 validation/run-reasoning.py \
+python3 validation/run-reasoning-context-v2.py \
   --base-url "$BASE_URL" \
   --served-model-name "$SERVED_MODEL_NAME" \
   --runtime exact-model-runtime-label \
   --execution-profile three-user-1-3-3-1 \
-  --tokenizer-path /path/to/model-or-tokenizer \
   --output-dir validation-results/reasoning-3user-YYYYMMDD-HHMMSS
 ```
 
@@ -107,10 +110,11 @@ python3 validation/anonymize-reasoning.py \
   --output validation-results/reasoning-YYYYMMDD-HHMMSS/grading-packet.json
 ```
 
-The current collector does not implement a single-case live rerun. The earlier
-standalone collector supports `--case CASE_ID`; use a fresh output directory
-and retain the original attempt. Do not claim that a targeted legacy rerun was
-part of the current uncapped suite.
+Context v2 accepts repeatable `--case CASE_ID` selectors and preserves frozen
+case order. Use a fresh output directory and retain every earlier attempt.
+Targeted reruns are additional evidence, not replacements. The original
+`run-reasoning.py` and standalone `reasoning/` collector retain their historical
+contracts.
 
 ## Current tool and agent suite
 

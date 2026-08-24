@@ -14,7 +14,8 @@ with command-line options. Use a new `--output-dir` for every live run.
 1. `../scripts/check_endpoint.py` checks model discovery and served identity
    without running inference. Runtime-specific geometry checks belong to the
    runtime repository, not this library.
-2. `run-reasoning.py` runs the frozen eight-case, nine-request reasoning suite.
+2. `run-reasoning.py` preserves the original frozen reasoning collector;
+   `run-reasoning-context-v2.py` is its context-bounded successor.
 3. `run-tools.py` runs the exact 30-invocation tool and agent suite using only
    local mock tool results.
 4. `run-needle.py` runs the explicitly acknowledged 994,987-token retrieval
@@ -24,15 +25,15 @@ The collection runners write JSON or JSON Lines manifests and return nonzero
 when an automatic gate fails. The reasoning score is different: qualitative
 review must be blinded and locked before operational metadata is revealed.
 
-## Frozen reasoning suite
+## Reasoning suites
 
 The authoritative cases are in `cases/reasoning.py`, with the original
 protocol and rubric beside them. C1–C7 are single-turn. C8 has a first request
 and a fixed correction request, producing nine measured requests total. The
-current collector omits `max_tokens` for measured requests and intentionally
-omits request-level sampling and reasoning overrides so the launcher remains
-authoritative. This uncapped request contract is distinct from the earlier
-standalone 64K collector and historical 32K results.
+original collector and rubric remain unchanged for historical results.
+`reasoning-context-v2` preserves the cases and weights while removing the
+legacy output-exhaustion penalty. It treats `finish_reason=length` as an
+invalid collection requiring rerun, never as a model or loop failure.
 
 The default `sequential` execution profile preserves the historical one-case-
 at-a-time schedule. The named `three-user-1-3-3-1` profile preserves the same
@@ -51,14 +52,15 @@ case finishes or fails. Results are written in C1–C8 order after each wave.
 Inspect without contacting a server:
 
 ```bash
-python3 validation/run-reasoning.py --list
-python3 validation/run-reasoning.py --dry-run
-python3 validation/run-reasoning.py \
+python3 validation/run-reasoning-context-v2.py --list
+python3 validation/run-reasoning-context-v2.py --dry-run
+python3 validation/run-reasoning-context-v2.py \
   --execution-profile three-user-1-3-3-1 --dry-run
-python3 validation/run-reasoning.py \
+python3 validation/run-reasoning-context-v2.py \
   --replay validation/fixtures/reasoning-replay.jsonl
 python3 validation/score-reasoning.py \
-  --grade validation/fixtures/reasoning-dspark4-grade.json
+  --grade validation/fixtures/reasoning-dspark4-grade.json \
+  --rubric validation/cases/reasoning-context-v2-rubric.json
 ```
 
 The final command deterministically reproduces the published **97.07/100**
@@ -67,16 +69,18 @@ aggregate from the locked historical grade. It does not regrade prose.
 Run a new collection:
 
 ```bash
-python3 validation/run-reasoning.py \
+python3 validation/run-reasoning-context-v2.py \
   --runtime dspark4-new-run \
   --execution-profile three-user-1-3-3-1 \
-  --tokenizer-path "$MODEL_PATH" \
   --output-dir validation-results/reasoning-YYYYMMDD-HHMMSS
 ```
 
 The two warm-ups are not scored. Live collection preserves exact requests,
 timestamped SSE lines, reasoning/content fields, usage, finish reasons,
-timings, errors, and loop events. Grade response text without runtime, token,
+timings, errors, and loop events. Loop detection uses a dependency-free
+word/punctuation equality tokenizer by default; server usage is authoritative
+for token counts. Optional `--reasoning-effort` and repeatable `--case`
+selectors are recorded in the manifest. Grade response text without runtime, token,
 timing, finish, or loop metadata; then use `score-reasoning.py` to calculate
 per-case, per-dimension, aggregate, and fatal-capped results. Reviewer judgment
 means a nondeterministic grader is not expected to reproduce 97.07 exactly.
@@ -92,6 +96,10 @@ python3 validation/anonymize-reasoning.py \
   --results validation-results/reasoning-YYYYMMDD-HHMMSS/results.jsonl \
   --output validation-results/reasoning-YYYYMMDD-HHMMSS/grading-packet.json
 ```
+
+The standalone collector under `reasoning/` retains its historical 64K
+contract. Install `requirements-legacy.txt` only to reproduce that line;
+context-v2 itself does not require Transformers.
 
 ## Tool and agent suite
 

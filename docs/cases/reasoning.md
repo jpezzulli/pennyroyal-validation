@@ -8,10 +8,9 @@ replace or modify them.
 
 All cases are closed-book and expose no tools. C1 through C7 are single-turn.
 C8 adds one fixed correction turn, so the suite produces nine measured
-requests. The current collector omits `max_tokens`, sampling, and
-request-level reasoning overrides. The earlier standalone collector uses a
-65,536-token measured ceiling, while historical reference runs used 32,768.
-Those are separate contracts.
+requests. Historical results retain their original 32,768- or 65,536-token
+contracts and rubrics. The named `reasoning-context-v2` successor preserves the
+case content but invalidates rather than scores `finish_reason=length`.
 
 Each applicable dimension is scored 0 to 4:
 
@@ -30,9 +29,10 @@ Each applicable dimension is scored 0 to 4:
 
 Case weights apply within dimensions; C8 alone supplies revision quality.
 Qualitative grades are locked from metadata-free text before finish state,
-tokens, timing, runtime identity, or loop flags are revealed. Mechanical caps
-are 35 for a case-specific fatal error, 20 for a confirmed reasoning loop, and
-10 for repetitive 32,768-token exhaustion without a usable answer.
+tokens, timing, runtime identity, or loop flags are revealed. Under context v2,
+mechanical caps are 35 for a case-specific fatal error and 20 for a confirmed
+reasoning loop. Finite-budget truncation invalidates collection; historical
+rubrics remain authoritative for their original runs.
 
 ## Case library
 

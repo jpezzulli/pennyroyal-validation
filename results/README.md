@@ -20,6 +20,7 @@ instead of being normalized into an artificial comparison.
 
 | Date | Model and runtime | Reasoning | Tools | Measured speed |
 |---|---|---:|---:|---|
+| 2026-08-24 | DeepSeek-V4-Flash 0731 · FreeToken native DSpARK | 95.67/100 post-hoc | 25/30 automatic; 28/30 semantic; 29/30 exact calls | R 30.37; T 13.56 wall; 1x 34.55; 3x 43.76; cold 64K TTFT 23.62 s; cached 64K TTFT 0.68 s |
 | 2026-08-21 | Qwen3.8-27B Uncensored FP8 · SGLang DFlash2 + HiCache/NIXL | 98.26/100 | — | R 124.48; 3x 396.78 median / 400.96 active; 1x 108.75; 4x 390.23; 64K prefill 6,163; 490K prefill 1,618 |
 | 2026-08-18 | Qwen3.8-27B Uncensored FP8 · SGLang DFlash2 | 98.56/100 | 28/30 automatic; 30/30 exact calls | R 125.8; T 132.0 wall / 158.3 engine; 1x 92.9; 4x 324.6; 64K prefill 6,659; 455K prefill 1,755 |
 | 2026-08-17 | Qwen3.8-27B Uncensored FP8 · SGLang DSpARK | 98.35/100 | 26/30 automatic; 29/30 semantic; 30/30 exact calls | R 105.8; 1x 88.81; 4x 342.72; 64K prefill 7,425; 455K prefill 2,161 |
@@ -31,6 +32,33 @@ instead of being normalized into an artificial comparison.
 | 2026-08-10 | Ling 3.0 Flash NVFP4 · vLLM | 73.80/100 | 26/30 automatic; 30/30 semantic and exact | R 70.8; 512-token decode 69.9; 16K prefill 5,994 |
 | 2026-08-02 | DeepSeek-V4-Flash 0731 · mapped-W2 DSpark-4 | 97.07/100 | 30/30 automatic and exact | R 54.92 wall; T 40.36 wall; 995K prefill 1,024.18 |
 | 2026-07-31 | DeepSeek-V4-Flash 0731 · vLLM-MoET | 87.54/100 | 30/30 reviewed in later mapped-W2 passes | R 39.78 wall |
+
+## 2026-08-24 FreeToken native DSpARK details
+
+- Model: `deepseek-ai/DeepSeek-V4-Flash-0731`
+- Runtime: custom FreeToken through `9195312` on one NVIDIA RTX PRO 6000 Blackwell
+- Speculation: three checkpoint-embedded DSpARK stages, anchor plus five drafts
+- Context: 524,288 full history; 24,576 prefill; 52,096 SWA tokens
+- MoE: 4,602 movable FP4 expert slots; launch-wide Triton decode backend
+- Validation: named `reasoning-context-v2` successor at `71f43d5`
+
+The basic pass measured **34.55 tok/s** after first token for one 1,024-token
+decode and **43.76 aggregate tok/s** for three concurrent decodes. A 64,137-token
+cold request reached first token in **23.624 seconds**; its cached repeat restored
+64,128 tokens and reached first token in **0.677 seconds**.
+
+Reasoning generated 146,320 completion tokens across the final nine-response
+record at **30.375 aggregate post-first-token tok/s**. C4 stopped naturally at
+32,124 tokens and C5 at 45,377 tokens after the hidden server default was fixed.
+The **95.67/100** score is post-hoc rather than blind-locked and is not directly
+comparable to the historical blind scores. Tools passed 25/30 automatic gates,
+28/30 semantic review, and 29/30 exact call checks.
+
+Native DSpARK was functionally complete and exposed cumulative acceptance
+telemetry, but the final evidence does not establish a controlled speedup over
+ordinary greedy decode. See the
+[detailed report](ds4flash0731-freetoken-dspark-20260824.md) and
+[machine-readable summary](ds4flash0731-freetoken-dspark-20260824.json).
 
 ## 2026-08-21 DFlash2 + HiCache/NIXL details
 
