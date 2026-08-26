@@ -95,11 +95,10 @@
         "/opt/sglang/benchmarks/results/main-refresh-20260826"
       ],
       "evidence_gaps": [
-        "No matched medium-effort historical score baseline",
         "Large raw SSE and request artifacts remain in the local evidence root rather than Git",
         "The automatic tool gate treats two semantically correct responses as strict wording/response-shape misses"
       ],
-      "comparability": "Standalone medium-effort qualification after a current-main runtime refresh; do not compare its reasoning score directly with xhigh/max or different-model 97.07 records"
+      "comparability": "Medium-effort qualification after a current-main runtime refresh; this catalog entry records the run rather than carrying cross-run baseline analysis"
     },
     {
       "id": "qwen38_27b_uncensored_fp8_sglang_dflash2_hicache_nixl_20260821",

@@ -16,10 +16,6 @@ runtime and HiCache/NIXL changes.
 - Tools: **30/30 exact calls**, **30/30 semantic**, **28/30 automatic**.
 - Restart recovery: **489,856 of 489,911 prompt tokens restored**.
 
-No matched historical medium-effort reasoning baseline exists. The 95.47 score
-is therefore a standalone qualification result, not evidence of a drop from
-the 97.07 result produced by a different model/runtime configuration.
-
 ## Tested runtime shape
 
 | Field | Value |
@@ -86,9 +82,8 @@ decode** and **160.53 token-weighted effective decode**. During exactly three
 running requests, 32 server samples averaged **490.40 tok/s** with a **497.33
 tok/s median**, 4.69-token acceptance length, and 0.527 acceptance rate.
 
-The score is configuration-specific. In particular, the launcher used
-`medium`; it should not be compared directly with xhigh/max qualifications or
-with the unrelated DeepSeek-V4-Flash 97.07 record.
+This report records the qualified run itself. Cross-run baseline analysis is
+kept outside the catalog record rather than duplicating earlier artifacts here.
 
 ## Tool behavior
 

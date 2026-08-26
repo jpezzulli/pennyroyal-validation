@@ -122,8 +122,7 @@
       },
       "all_samples_acceptance_length": 4.381,
       "all_samples_acceptance_rate": 0.483
-    },
-    "baseline_note": "No matched historical medium-effort baseline is available; this score is not a claimed regression from the 97.07 result produced by a different model/runtime configuration."
+    }
   },
   "tools": {
     "invocations": 30,
@@ -163,7 +162,6 @@
   "evidence_root": "/opt/sglang/benchmarks/results/main-refresh-20260826",
   "evidence_gaps": [
     "Large request and SSE artifacts remain local rather than being committed to Git.",
-    "No matched medium-effort historical reasoning baseline exists.",
     "The collection preceded the client-only tokenizer/checksum maintenance commit; prompts, execution profile, scoring, and captured Chat Completions usage were unchanged."
   ]
 }

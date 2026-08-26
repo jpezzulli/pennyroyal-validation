@@ -51,9 +51,8 @@ reasoning override or output cap. It scored **95.47/100**, generated 49,445 API
 completion tokens, and measured **160.53 token-weighted effective tok/s** from
 server post-prefill timing. Exactly-three-running telemetry averaged **490.40
 tok/s** with a **497.33 tok/s median**, 4.69-token acceptance length, and 0.527
-acceptance rate. There is no matched historical medium-effort baseline in this
-catalog, so this score is not presented as a regression from 97.07 or any
-other differently configured run.
+acceptance rate. This entry records the qualified run itself; cross-run baseline
+analysis is intentionally kept outside the catalog record.
 
 The tool pass completed the preserved 30-request schedule with **30/30 exact
 tool selections and arguments**, **30/30 semantic passes**, **28/30 automatic
