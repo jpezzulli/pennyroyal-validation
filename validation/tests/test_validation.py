@@ -162,6 +162,32 @@ class ReasoningSuiteTests(unittest.TestCase):
         self.assertNotIn("max_tokens", payload)
         self.assertNotIn("max_completion_tokens", payload)
 
+    def test_dependency_free_loop_units_are_stable(self):
+        text = "Alpha, beta! Alpha, beta!"
+        units = reasoning_runner.loop_detection_units(text)
+        self.assertEqual(units, reasoning_runner.loop_detection_units(text))
+        self.assertEqual(
+            units,
+            ["Alpha", ",", "beta", "!", "Alpha", ",", "beta", "!"],
+        )
+
+    def test_reasoning_cli_does_not_expose_model_tokenizer_path(self):
+        completed = subprocess.run(
+            [sys.executable, str(ROOT / "run-reasoning.py"), "--help"],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(completed.returncode, 0, completed.stderr)
+        self.assertNotIn("--tokenizer-path", completed.stdout)
+
+    def test_chat_completion_usage_is_authoritative(self):
+        self.assertEqual(
+            reasoning_runner.completion_token_count({"completion_tokens": 123}),
+            123,
+        )
+        self.assertIsNone(reasoning_runner.completion_token_count(None))
+
     def test_public_replay_fixture_passes(self):
         completed = subprocess.run(
             [

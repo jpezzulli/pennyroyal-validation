@@ -3,6 +3,15 @@
 The suite is evidence infrastructure. Stability takes precedence over making
 an old result look cleaner or more comparable.
 
+## Living implementation
+
+The repository's runners, dependencies, documentation, and validation tooling
+are living code. Git commits identify exact historical states; focused unit
+tests and `scripts/validate_repository.py` enforce current invariants. Do not
+add a repository-wide checksum manifest that makes normal maintenance appear
+to corrupt the suite. Frozen cases and published evidence remain protected by
+the contracts below.
+
 ## Frozen contracts
 
 - Frozen case identifiers remain stable.

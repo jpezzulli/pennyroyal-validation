@@ -68,7 +68,6 @@ python3 validation/run-reasoning.py \
   --base-url "$BASE_URL" \
   --served-model-name "$SERVED_MODEL_NAME" \
   --runtime exact-model-runtime-label \
-  --tokenizer-path /path/to/model-or-tokenizer \
   --output-dir validation-results/reasoning-YYYYMMDD-HHMMSS
 ```
 
@@ -86,7 +85,6 @@ python3 validation/run-reasoning.py \
   --served-model-name "$SERVED_MODEL_NAME" \
   --runtime exact-model-runtime-label \
   --execution-profile three-user-1-3-3-1 \
-  --tokenizer-path /path/to/model-or-tokenizer \
   --output-dir validation-results/reasoning-3user-YYYYMMDD-HHMMSS
 ```
 
@@ -96,6 +94,10 @@ or C8 context. The runner records wave boundaries and writes results back in
 deterministic case order. Report 3-running, 2-running, and 1-running throughput
 and speculative acceptance separately; C6 may make the second 3-running phase
 brief.
+
+Reasoning collection uses the OpenAI-compatible Chat Completions endpoint.
+`usage.completion_tokens` is the reported token count; dependency-free text
+units are used only to detect repeated output and require no local model files.
 
 Create the metadata-free packet before grading, lock qualitative grades, then
 apply mechanical caps:

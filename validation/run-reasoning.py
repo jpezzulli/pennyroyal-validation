@@ -53,8 +53,16 @@ def post_json(base, path, payload, timeout=120):
         return json.loads(response.read())
 
 
-def tokenize(tokenizer, text):
-    return tokenizer.encode(text, add_special_tokens=False)
+def loop_detection_units(text):
+    """Return stable, dependency-free units for repeated-output detection."""
+    return re.findall(r"\w+|[^\w\s]", text, flags=re.UNICODE)
+
+
+def completion_token_count(usage):
+    if not isinstance(usage, dict):
+        return None
+    value = usage.get("completion_tokens")
+    return value if isinstance(value, int) and value >= 0 else None
 
 
 def exact_block_loop(tokens):
@@ -108,7 +116,7 @@ def semantic_cycle_flag(tokens):
     return None
 
 
-def stream_chat(base, payload, raw_dir, request_id, tokenizer, heat_sentinel):
+def stream_chat(base, payload, raw_dir, request_id, heat_sentinel):
     request_path = raw_dir / f"{request_id}.request.json"
     chunks_path = raw_dir / f"{request_id}.sse.jsonl"
     result_path = raw_dir / f"{request_id}.result.json"
@@ -184,7 +192,7 @@ def stream_chat(base, payload, raw_dir, request_id, tokenizer, heat_sentinel):
                 combined = "".join(reasoning_parts) + "\n" + "".join(content_parts)
                 if len(combined) - last_loop_check_chars >= 256:
                     last_loop_check_chars = len(combined)
-                    token_ids = tokenize(tokenizer, combined)
+                    token_ids = loop_detection_units(combined)
                     if len(token_ids) - last_loop_check_tokens >= 32:
                         last_loop_check_tokens = len(token_ids)
                         event = exact_block_loop(token_ids) or sentence_loop(combined)
@@ -204,10 +212,11 @@ def stream_chat(base, payload, raw_dir, request_id, tokenizer, heat_sentinel):
     reasoning = "".join(reasoning_parts)
     content = "".join(content_parts)
     if not token_ids:
-        token_ids = tokenize(tokenizer, reasoning + "\n" + content)
+        token_ids = loop_detection_units(reasoning + "\n" + content)
     semantic = semantic_cycle_flag(token_ids)
     if semantic:
         loop_events.append(semantic)
+    completion_tokens = completion_token_count(usage)
     result = {
         "request_id": request_id,
         "started_at": started_at,
@@ -219,7 +228,9 @@ def stream_chat(base, payload, raw_dir, request_id, tokenizer, heat_sentinel):
         "reasoning_content": reasoning,
         "content": content,
         "usage": usage,
-        "local_generated_tokens": len(token_ids),
+        "completion_tokens": completion_tokens,
+        "loop_detection_units": len(token_ids),
+        "reported_token_source": "chat-completions usage.completion_tokens",
         "finish_reason": finish_reason,
         "time_to_first_reasoning_s": first_reasoning_s,
         "time_to_first_content_s": first_content_s,
@@ -313,9 +324,13 @@ def execute_wave(cases, collector):
 
 
 def print_result(result):
+    completion_tokens = result["completion_tokens"]
+    token_display = (
+        completion_tokens if completion_tokens is not None else "unavailable"
+    )
     print(
         f"END {result['request_id']} wall={result['wall_seconds']:.2f}s "
-        f"tokens={result['local_generated_tokens']} "
+        f"tokens={token_display} "
         f"finish={result['finish_reason']} "
         f"termination={result['termination']} error={result['error']}",
         flush=True,
@@ -330,7 +345,6 @@ def collect_case(
     base,
     model,
     raw_dir,
-    tokenizer,
     heat_sentinel,
 ):
     request_id = f"{case['id'].lower()}-r1"
@@ -339,7 +353,7 @@ def collect_case(
     if start_barrier is not None:
         start_barrier.wait(timeout=START_BARRIER_TIMEOUT_SECONDS)
     result = stream_chat(
-        base, payload, raw_dir, request_id, tokenizer, heat_sentinel
+        base, payload, raw_dir, request_id, heat_sentinel
     )
     result.update({"kind": "measured", "case_id": case["id"], "turn": 1})
     print_result(result)
@@ -363,7 +377,6 @@ def collect_case(
         correction_payload,
         raw_dir,
         correction_id,
-        tokenizer,
         heat_sentinel,
     )
     corrected.update({"kind": "measured", "case_id": "C8", "turn": 2})
@@ -404,7 +417,6 @@ def main():
     parser.add_argument("--base", "--base-url", dest="base", default=base_url())
     parser.add_argument("--model", "--served-model-name", dest="model", default=served_model_name())
     parser.add_argument("--heat-sentinel", type=Path)
-    parser.add_argument("--tokenizer-path")
     parser.add_argument(
         "--execution-profile",
         choices=EXECUTION_PROFILES,
@@ -463,20 +475,12 @@ def main():
         manifest = replay_manifest(args.replay, suite)
         print(json.dumps(manifest, indent=2))
         return 0 if manifest["gate_passed"] else 1
-    if not args.tokenizer_path:
-        parser.error("--tokenizer-path is required for a live run")
-
     out = args.output or Path(
         "validation-results", time.strftime("reasoning-%Y%m%d-%H%M%S")
     )
     raw_dir = out / "raw"
     raw_dir.mkdir(parents=True, exist_ok=True)
     heat_sentinel = args.heat_sentinel or out / "HEAT_STOP"
-
-    from transformers import AutoTokenizer
-    tokenizer = AutoTokenizer.from_pretrained(
-        args.tokenizer_path, trust_remote_code=True
-    )
 
     ready = wait_ready(args.base)
     (out / "models-ready.json").write_text(json.dumps(ready, indent=2) + "\n")
@@ -509,13 +513,17 @@ def main():
         }
         print(f"START {request_id}", flush=True)
         result = stream_chat(
-            args.base, payload, raw_dir, request_id, tokenizer, heat_sentinel
+            args.base, payload, raw_dir, request_id, heat_sentinel
         )
         result["kind"] = "warmup"
         append_jsonl(results_path, result)
+        completion_tokens = result["completion_tokens"]
+        token_display = (
+            completion_tokens if completion_tokens is not None else "unavailable"
+        )
         print(
             f"END {request_id} wall={result['wall_seconds']:.2f}s "
-            f"tokens={result['local_generated_tokens']} finish={result['finish_reason']} "
+            f"tokens={token_display} finish={result['finish_reason']} "
             f"termination={result['termination']} error={result['error']}",
             flush=True,
         )
@@ -542,7 +550,6 @@ def main():
                 base=args.base,
                 model=args.model,
                 raw_dir=raw_dir,
-                tokenizer=tokenizer,
                 heat_sentinel=heat_sentinel,
             ),
         )
@@ -575,6 +582,8 @@ def main():
         "measured_requests": 9,
         "measured_max_tokens": None,
         "measured_max_tokens_field": "omitted",
+        "loop_detection": "stdlib-word-punctuation-equality-units",
+        "reported_token_source": "chat-completions usage.completion_tokens",
         "request_plan": plan,
         "results": "results.jsonl",
         "grading": "blinded qualitative review required; see cases/reasoning-rubric.json",

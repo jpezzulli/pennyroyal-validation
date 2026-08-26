@@ -86,7 +86,6 @@ python3 validation/run-reasoning.py \
 python3 validation/run-tools.py --dry-run
 python3 validation/run-needle.py --smoke
 python3 scripts/validate_repository.py
-sha256sum -c SHA256SUMS
 ```
 
 Stop and report any failure. Do not patch the suite merely to make a check pass.
@@ -98,7 +97,7 @@ Look for values already provided by the operator or current shell environment:
 - `BASE_URL`: OpenAI-compatible API base, normally without `/v1`.
 - `SERVED_MODEL_NAME`: exact model ID returned by `GET /v1/models`.
 - Runtime label: a precise human-readable description saved with the result.
-- Tokenizer path: required for a live reasoning or long-context run.
+- Tokenizer path: required only for the tokenizer-exact long-context needle run.
 
 If both endpoint variables are known, perform the safe discovery check:
 
@@ -148,7 +147,6 @@ Safe checks
 - Tool dry run: <passed or failed>
 - Long-context smoke: <passed or failed>
 - Repository validation: <passed or failed>
-- Frozen checksums: <passed or failed>
 
 Endpoint
 - Base URL: <value or MISSING>

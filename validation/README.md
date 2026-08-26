@@ -70,16 +70,17 @@ Run a new collection:
 python3 validation/run-reasoning.py \
   --runtime dspark4-new-run \
   --execution-profile three-user-1-3-3-1 \
-  --tokenizer-path "$MODEL_PATH" \
   --output-dir validation-results/reasoning-YYYYMMDD-HHMMSS
 ```
 
 The two warm-ups are not scored. Live collection preserves exact requests,
-timestamped SSE lines, reasoning/content fields, usage, finish reasons,
-timings, errors, and loop events. Grade response text without runtime, token,
-timing, finish, or loop metadata; then use `score-reasoning.py` to calculate
-per-case, per-dimension, aggregate, and fatal-capped results. Reviewer judgment
-means a nondeterministic grader is not expected to reproduce 97.07 exactly.
+timestamped SSE lines, reasoning/content fields, Chat Completions usage, finish
+reasons, timings, errors, and loop events. Loop detection is dependency-free;
+reported token counts come from `usage.completion_tokens`. Grade response text
+without runtime, token, timing, finish, or loop metadata; then use
+`score-reasoning.py` to calculate per-case, per-dimension, aggregate, and
+fatal-capped results. Reviewer judgment means a nondeterministic grader is not
+expected to reproduce 97.07 exactly.
 Every result must record its execution profile. A three-user result should
 report the 3-running, 2-running, and 1-running phases separately because a
 short case such as C6 naturally ends the second three-request interval early.
@@ -241,11 +242,10 @@ finish reason, then checks that `37 + 58` returns `95`. The historical TTFT was
 
 ## Dependencies and outputs
 
-The tool suite uses the Python standard library. Live reasoning collection
-also requires `transformers` for loop detection. The live needle runner
-requires `transformers` and `httpx`; its fixture smoke mode does not require a
-model or tokenizer. These packages are already present in the documented
-native serving environment.
+The tool and reasoning suites use the Python standard library. The live needle
+runner requires `transformers` and `httpx`; its fixture smoke mode does not
+require a model or tokenizer. These packages are already present in the
+documented native serving environment.
 
 Never commit live result directories. Preserve their requests, raw streams,
 responses, manifests, grades, and provenance externally, and assign each run a
