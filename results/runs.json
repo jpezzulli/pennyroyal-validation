@@ -3,6 +3,105 @@
   "purpose": "Curated model and runtime qualification history; not a leaderboard",
   "runs": [
     {
+      "id": "qwen38_27b_uncensored_fp8_sglang_dflash2_hicache_nixl_medium_20260826",
+      "date": "2026-08-26",
+      "model": "orcarouter/Qwen3.8-27B-Uncensored-FP8",
+      "checkpoint": "/srv/models/hf/qwen3.8-27b-fp8-uncensored",
+      "runtime": "refreshed SGLang main with DFlash2 and HiCache/NIXL",
+      "runtime_commit": "37a163406f22764cb66c06c467d6205d3f162b30",
+      "upstream_baseline": "e7e78940168f3ba65c762a6f82fd8bc5b6ee04e3",
+      "hardware": "one NVIDIA RTX PRO 6000 Blackwell Workstation Edition, SM120",
+      "launch_shape": "BF16 compute; FP8 E4M3 target and draft KV; 524288 admission; TP1; four requests; DFlash2 gamma 8 with 2048-token window; 2048-token prefill; 24 Mamba slots with per-path cap 5; FP32 SSM and BF16 convolution state; mem_fraction_static 0.92; 96 GB HiCache; kernel plus page_first; write-through timeout prefetch; NIXL POSIX FILE; page size 64; launcher-owned medium reasoning effort",
+      "weight_format": "target block FP8 E4M3; independent unquantized DFlash2 draft safetensors",
+      "target_kv": "FP8 E4M3",
+      "draft_kv": "FP8 E4M3",
+      "context_admission_tokens": 524288,
+      "actual_kv_capacity_tokens": 1118784,
+      "speculation": {
+        "method": "DFlash2",
+        "draft_checkpoint": "incoai/Qwen3.8-27B-DFlash2",
+        "max_draft_tokens": 8,
+        "draft_window_tokens": 2048,
+        "reasoning_all_sample_acceptance_length": 4.381,
+        "reasoning_all_sample_acceptance_rate": 0.483,
+        "reasoning_three_request_acceptance_length": 4.6875,
+        "reasoning_three_request_acceptance_rate": 0.5266
+      },
+      "hierarchical_cache": {
+        "host_size_gb_requested": 96,
+        "host_memory_mode": "cache",
+        "write_policy": "write_through",
+        "prefetch_policy": "timeout",
+        "io_backend": "kernel",
+        "memory_layout": "page_first",
+        "page_size": 64,
+        "storage": "NIXL POSIX FILE",
+        "namespace_suffix": "79a07e900163"
+      },
+      "suite_commit": "d0c86c40222eacfd8c39c2db3439b07065916c1a",
+      "suite_maintenance_commit": "7911f138698fff0fd50759af2f1635260cf720bf",
+      "reasoning": {
+        "final_score": 95.47,
+        "reasoning_effort": "medium from launcher; no request override",
+        "completion_tokens": 49445,
+        "measured_requests": 9,
+        "token_weighted_effective_decode_tokens_per_second": 160.52763,
+        "median_request_effective_decode_tokens_per_second": 155.16153,
+        "three_request_server_mean_tokens_per_second": 490.402,
+        "three_request_server_median_tokens_per_second": 497.325,
+        "fatal_cases": [],
+        "failures_or_truncations": 0,
+        "case_scores": {
+          "C1": 94.0217,
+          "C2": 96.1957,
+          "C3": 100.0,
+          "C4": 98.3696,
+          "C5": 83.1522,
+          "C6": 100.0,
+          "C7": 92.9348,
+          "C8": 100.0
+        }
+      },
+      "tools": {
+        "invocations": 30,
+        "automatic_score": "28/30",
+        "semantic_score": "30/30",
+        "exact_calls": "30/30",
+        "parseable_arguments": "30/30",
+        "strict_response_discipline": "29/30",
+        "errors": 0
+      },
+      "performance": {
+        "prefill_64k_prompt_tokens": 63896,
+        "prefill_64k_tokens_per_second": 6107.335454225461,
+        "prefill_490k_prompt_tokens": 489911,
+        "prefill_490k_tokens_per_second": 1617.1745410811525,
+        "needle_retrieval": "3/3 exact",
+        "decode_1024_1x_after_first_token_tokens_per_second": 114.6558645693302,
+        "decode_4x_aggregate_tokens_per_second": 351.14965768983956,
+        "reasoning_three_request_server_mean_tokens_per_second": 490.402,
+        "reasoning_three_request_server_median_tokens_per_second": 497.325
+      },
+      "restart_recovery": {
+        "prompt_tokens": 489911,
+        "restored_tokens": 489856,
+        "recomputed_tokens": 55,
+        "cold_ttft_seconds": 302.9425628185272,
+        "restored_ttft_seconds": 12.103174686431885,
+        "needle_retrieval": "3/3 exact"
+      },
+      "custom_implementation": "current-main reconciliation, DFlash2 support, SM120/XQA performance work, bounded NIXL hybrid transfers, distinct NIXL path-mode device IDs, permanent Mamba per-path retention cap, and deterministic representation-specific FILE namespaces",
+      "evidence_roots": [
+        "/opt/sglang/benchmarks/results/main-refresh-20260826"
+      ],
+      "evidence_gaps": [
+        "No matched medium-effort historical score baseline",
+        "Large raw SSE and request artifacts remain in the local evidence root rather than Git",
+        "The automatic tool gate treats two semantically correct responses as strict wording/response-shape misses"
+      ],
+      "comparability": "Standalone medium-effort qualification after a current-main runtime refresh; do not compare its reasoning score directly with xhigh/max or different-model 97.07 records"
+    },
+    {
       "id": "qwen38_27b_uncensored_fp8_sglang_dflash2_hicache_nixl_20260821",
       "date": "2026-08-21",
       "model": "orcarouter/Qwen3.8-27B-Uncensored-FP8",

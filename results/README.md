@@ -20,6 +20,7 @@ instead of being normalized into an artificial comparison.
 
 | Date | Model and runtime | Reasoning | Tools | Measured speed |
 |---|---|---:|---:|---|
+| 2026-08-26 | Qwen3.8-27B Uncensored FP8 · refreshed SGLang DFlash2 + HiCache/NIXL · medium | 95.47/100 | 28/30 automatic; 30/30 semantic and exact | R 160.53 weighted effective; 3x 497.33 median / 490.40 mean; 1x 114.66; 4x 351.15; 64K prefill 6,107; 490K prefill 1,617 |
 | 2026-08-21 | Qwen3.8-27B Uncensored FP8 · SGLang DFlash2 + HiCache/NIXL | 98.26/100 | — | R 124.48; 3x 396.78 median / 400.96 active; 1x 108.75; 4x 390.23; 64K prefill 6,163; 490K prefill 1,618 |
 | 2026-08-18 | Qwen3.8-27B Uncensored FP8 · SGLang DFlash2 | 98.56/100 | 28/30 automatic; 30/30 exact calls | R 125.8; T 132.0 wall / 158.3 engine; 1x 92.9; 4x 324.6; 64K prefill 6,659; 455K prefill 1,755 |
 | 2026-08-17 | Qwen3.8-27B Uncensored FP8 · SGLang DSpARK | 98.35/100 | 26/30 automatic; 29/30 semantic; 30/30 exact calls | R 105.8; 1x 88.81; 4x 342.72; 64K prefill 7,425; 455K prefill 2,161 |
@@ -31,6 +32,40 @@ instead of being normalized into an artificial comparison.
 | 2026-08-10 | Ling 3.0 Flash NVFP4 · vLLM | 73.80/100 | 26/30 automatic; 30/30 semantic and exact | R 70.8; 512-token decode 69.9; 16K prefill 5,994 |
 | 2026-08-02 | DeepSeek-V4-Flash 0731 · mapped-W2 DSpark-4 | 97.07/100 | 30/30 automatic and exact | R 54.92 wall; T 40.36 wall; 995K prefill 1,024.18 |
 | 2026-07-31 | DeepSeek-V4-Flash 0731 · vLLM-MoET | 87.54/100 | 30/30 reviewed in later mapped-W2 passes | R 39.78 wall |
+
+## 2026-08-26 refreshed-main DFlash2 details
+
+The existing Penny runtime was rebuilt from upstream SGLang main plus its
+required portable carry-through changes, then qualified without changing the
+checkpoint or launch shape. It retained 524K admission, FP8 target and draft
+KV, DFlash2 gamma 8, the 96 GB HiCache host tier, representation-specific NIXL
+FILE persistence, and the permanent 24-slot / five-states-per-path Mamba shape.
+
+The bounded decode pass measured **114.66 tok/s** at one request and **351.15
+aggregate tok/s** across four simultaneous requests. Prefill measured
+**6,107.34 tok/s at 63,896 tokens** and **1,617.17 tok/s at 489,911 tokens**;
+all three long-context needles were exact.
+
+The reasoning pass used launcher-owned `medium` effort with no request-level
+reasoning override or output cap. It scored **95.47/100**, generated 49,445 API
+completion tokens, and measured **160.53 token-weighted effective tok/s** from
+server post-prefill timing. Exactly-three-running telemetry averaged **490.40
+tok/s** with a **497.33 tok/s median**, 4.69-token acceptance length, and 0.527
+acceptance rate. There is no matched historical medium-effort baseline in this
+catalog, so this score is not presented as a regression from 97.07 or any
+other differently configured run.
+
+The tool pass completed the preserved 30-request schedule with **30/30 exact
+tool selections and arguments**, **30/30 semantic passes**, **28/30 automatic
+passes**, and zero errors. One response repeated untrusted text while refusing
+to follow it, and another used equivalent invalid-date wording that missed a
+literal automatic expectation.
+
+After a service restart, the identical NIXL namespace restored **489,856 of
+489,911 prompt tokens**. The exact long request remained 3/3 correct and TTFT
+fell from 302.94 seconds cold to 12.10 seconds restored. See the
+[detailed report](qwen38-dflash2-main-refresh-medium-20260826.md) and
+[machine-readable record](qwen38-dflash2-main-refresh-medium-20260826.json).
 
 ## 2026-08-21 DFlash2 + HiCache/NIXL details
 

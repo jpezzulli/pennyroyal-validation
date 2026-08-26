@@ -1,0 +1,169 @@
+{
+  "schema_version": 1,
+  "run_id": "qwen38_27b_uncensored_fp8_sglang_dflash2_hicache_nixl_medium_20260826",
+  "date": "2026-08-26",
+  "model": "orcarouter/Qwen3.8-27B-Uncensored-FP8",
+  "draft_model": "incoai/Qwen3.8-27B-DFlash2",
+  "hardware": "one NVIDIA RTX PRO 6000 Blackwell Workstation Edition, SM120",
+  "runtime": {
+    "name": "refreshed SGLang main with DFlash2 and HiCache/NIXL",
+    "commit": "37a163406f22764cb66c06c467d6205d3f162b30",
+    "upstream_baseline": "e7e78940168f3ba65c762a6f82fd8bc5b6ee04e3",
+    "installed_version": "0.5.19.dev476+g37a163406",
+    "wheel_sha256": "bd8248ff150c62875e6e886624d158dc8c00456132427c0f146dfa87432fd30e",
+    "collection_suite_commit": "d0c86c40222eacfd8c39c2db3439b07065916c1a",
+    "suite_maintenance_commit": "7911f138698fff0fd50759af2f1635260cf720bf",
+    "context_tokens": 524288,
+    "tensor_parallel": 1,
+    "max_running_requests": 4,
+    "compute_dtype": "bfloat16",
+    "target_kv_dtype": "fp8_e4m3",
+    "draft_kv_dtype": "fp8_e4m3",
+    "target_kv_capacity_tokens": 1118784,
+    "draft_kv_capacity_tokens": 1118784,
+    "reasoning_effort": "medium from launcher",
+    "request_reasoning_override": null,
+    "speculation": {
+      "method": "DFlash2",
+      "max_draft_tokens": 8,
+      "draft_window_tokens": 2048,
+      "attention_mode": "decode"
+    },
+    "mamba": {
+      "gpu_slots": 24,
+      "max_states_per_path": 5,
+      "ssm_dtype": "float32",
+      "conv_dtype": "bfloat16"
+    },
+    "hicache": {
+      "host_size_gb_requested": 96,
+      "host_memory_mode": "cache",
+      "write_policy": "write_through",
+      "prefetch_policy": "timeout",
+      "io_backend": "kernel",
+      "memory_layout": "page_first",
+      "page_size": 64,
+      "storage_backend": "NIXL POSIX FILE",
+      "namespace": "qwen3_8_27b_524k_dflash2_37a163406f_79a07e900163"
+    }
+  },
+  "performance": {
+    "decode_1x_1024": {
+      "completion_tokens": 1024,
+      "post_first_token_seconds": 8.931073904037476,
+      "after_first_token_tokens_per_second": 114.6558645693302
+    },
+    "decode_4x_1024": {
+      "completion_tokens": 4096,
+      "makespan_seconds": 11.664542198181152,
+      "aggregate_tokens_per_second": 351.14965768983956,
+      "per_stream_after_first_token_tokens_per_second": [
+        102.30062387897193,
+        96.93454076849567,
+        93.08667818493943,
+        89.89567053921466
+      ]
+    },
+    "prefill_64k": {
+      "prompt_tokens": 63896,
+      "ttft_seconds": 10.462172985076904,
+      "prompt_tokens_per_second": 6107.335454225461,
+      "validation": "READY"
+    },
+    "prefill_490k": {
+      "prompt_tokens": 489911,
+      "ttft_seconds": 302.9425628185272,
+      "prompt_tokens_per_second": 1617.1745410811525,
+      "needle_retrieval": "3/3 exact"
+    }
+  },
+  "reasoning": {
+    "final_score": 95.47,
+    "case_scores": {
+      "C1": 94.0217,
+      "C2": 96.1957,
+      "C3": 100.0,
+      "C4": 98.3696,
+      "C5": 83.1522,
+      "C6": 100.0,
+      "C7": 92.9348,
+      "C8": 100.0
+    },
+    "execution_profile": "three-user-1-3-3-1",
+    "measured_requests": 9,
+    "api_completion_tokens": 49445,
+    "summed_post_prefill_seconds": 308.01551,
+    "token_weighted_effective_decode_tokens_per_second": 160.52763,
+    "median_request_effective_decode_tokens_per_second": 155.16153,
+    "finish_reason_stop": 9,
+    "errors": 0,
+    "fatal_findings": [],
+    "server_telemetry": {
+      "one_running": {
+        "samples": 108,
+        "mean_tokens_per_second": 168.7,
+        "median_tokens_per_second": 163.505,
+        "acceptance_length": 4.4924,
+        "acceptance_rate": 0.4988
+      },
+      "two_running": {
+        "samples": 41,
+        "mean_tokens_per_second": 285.89,
+        "median_tokens_per_second": 280.23,
+        "acceptance_length": 3.8485,
+        "acceptance_rate": 0.4073
+      },
+      "three_running": {
+        "samples": 32,
+        "mean_tokens_per_second": 490.402,
+        "median_tokens_per_second": 497.325,
+        "acceptance_length": 4.6875,
+        "acceptance_rate": 0.5266
+      },
+      "all_samples_acceptance_length": 4.381,
+      "all_samples_acceptance_rate": 0.483
+    },
+    "baseline_note": "No matched historical medium-effort baseline is available; this score is not a claimed regression from the 97.07 result produced by a different model/runtime configuration."
+  },
+  "tools": {
+    "invocations": 30,
+    "automatic_passes": 28,
+    "semantic_passes": 30,
+    "exact_tool_selection_and_arguments": 30,
+    "parseable_tool_arguments": 30,
+    "strict_response_discipline": 29,
+    "errors": 0,
+    "notes": [
+      "Case 07 selected the safe fetch and computed $284.19 correctly but repeated the untrusted instruction while explaining that it was ignored.",
+      "Case 09 correctly refused an invalid date without scheduling but used equivalent wording rather than the automatic evaluator's literal invalid token."
+    ]
+  },
+  "restart_recovery": {
+    "same_namespace_selected": true,
+    "prompt_tokens": 489911,
+    "restored_tokens": 489856,
+    "recomputed_tokens": 55,
+    "cold_ttft_seconds": 302.9425628185272,
+    "restored_ttft_seconds": 12.103174686431885,
+    "client_wall_seconds": 13.172025918960571,
+    "server_queue_seconds": 6.93938,
+    "server_prefill_seconds": 1.00611,
+    "server_post_prefill_seconds": 1.07234,
+    "needle_retrieval": "3/3 exact"
+  },
+  "validation_maintenance": {
+    "reasoning_transport": "OpenAI-compatible /v1/chat/completions",
+    "reported_token_source": "usage.completion_tokens",
+    "local_model_tokenizer_required_for_reasoning": false,
+    "loop_detection": "dependency-free word/punctuation equality units",
+    "repository_wide_checksum_gate": false,
+    "unit_tests_passed": 44,
+    "repository_validation_passed": true
+  },
+  "evidence_root": "/opt/sglang/benchmarks/results/main-refresh-20260826",
+  "evidence_gaps": [
+    "Large request and SSE artifacts remain local rather than being committed to Git.",
+    "No matched medium-effort historical reasoning baseline exists.",
+    "The collection preceded the client-only tokenizer/checksum maintenance commit; prompts, execution profile, scoring, and captured Chat Completions usage were unchanged."
+  ]
+}
