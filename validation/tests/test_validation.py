@@ -29,6 +29,7 @@ reasoning_runner = load("reasoning_runner", ROOT / "run-reasoning.py")
 reasoning_scorer = load("reasoning_scorer", ROOT / "score-reasoning.py")
 tool_runner = load("tool_runner", ROOT / "run-tools.py")
 needle_runner = load("needle_runner", ROOT / "run-needle.py")
+vision_runner = load("vision_runner", ROOT / "run-vision.py")
 
 
 class ResponseExtractionTests(unittest.TestCase):
@@ -56,6 +57,43 @@ class ResponseExtractionTests(unittest.TestCase):
         self.assertFalse(needle_runner.qualification_gate_passed(manifest))
         manifest["visible_content_exact_after_strip"] = True
         self.assertTrue(needle_runner.qualification_gate_passed(manifest))
+
+    def test_vision_fixture_smoke(self):
+        case = vision_runner.load_case()
+        self.assertTrue(vision_runner.canonical_smoke(case)["passed"])
+
+    def test_vision_gate_requires_both_spatial_endpoints(self):
+        case = vision_runner.load_case()
+        incomplete = (
+            "Turbulent-Alps4046 reports 512k at 100+ tps with sglang + dflash2."
+        )
+        checks = vision_runner.evaluate_visible(
+            incomplete, "stop", case["expected"]
+        )
+        self.assertFalse(checks["passed"])
+        self.assertFalse(checks["bottom_author"])
+
+    def test_vision_gate_rejects_mixed_claim_regions(self):
+        case = vision_runner.load_case()
+        mixed = (
+            "Topmost: Turbulent-Alps4046 reports 200 tps on RTX Pro 6000 with "
+            "SGLang. Bottommost: ComposerGen reports 512k and 100+ tps using "
+            "sglang + dflash2."
+        )
+        checks = vision_runner.evaluate_visible(mixed, "stop", case["expected"])
+        self.assertFalse(checks["passed"])
+        self.assertFalse(checks["top_context"])
+        self.assertFalse(checks["bottom_claim"])
+
+    def test_vision_dry_run_is_non_inference(self):
+        completed = subprocess.run(
+            [sys.executable, str(ROOT / "run-vision.py"), "--dry-run"],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(completed.returncode, 0, completed.stderr)
+        self.assertEqual(json.loads(completed.stdout)["mode"], "dry-run")
 
 
 class ReasoningSuiteTests(unittest.TestCase):

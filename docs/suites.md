@@ -7,6 +7,7 @@
 | Current reasoning | Closed-book diagnosis, evidence ordering, constrained optimization, scheduling proof, idempotent transaction design, rule-based release, probability bounds, and multi-turn correction |
 | Current tools and agents | Direct answers, exact tool choice and arguments, clarification, dependency ordering, recovery, untrusted output, invalid input, one-shot control, JSON, arithmetic, delegated synthesis, long-context retrieval, and concurrent main/subagent work |
 | Sealed controls | A stateful inspect-create-inspect-revise-inspect artifact workflow and a fixed natural-decode instrument |
+| Vision | Spatial top/bottom comment selection, OCR, claim separation, and multimodal Chat Completions |
 | Near-million-token needle | Tokenizer-exact admission, retrieval, response-field extraction, prefill/decode timing, and immediate post-run health |
 | Earlier standalone line | The 64K reasoning/targeted-rerun contract, synthetic deferred-tool bridge, and reusable performance clients |
 
@@ -47,6 +48,37 @@ python3 scripts/check_endpoint.py
 The suite runners do not require or invent an API credential. If an
 OpenAI-compatible gateway insists on a nonempty bearer token, configure that
 gateway or client outside the frozen case definitions.
+
+## Current performance harness
+
+`performance/openai_chat_benchmarks.py` is the exact reusable harness used for
+the 2026-08-27 Flash-Next performance qualification. It keeps prefill and
+decode separate and provides four selectable ordinary Chat Completions tests:
+
+- approximately 64K prompt prefill with an exact `READY` gate;
+- approximately 490K prompt prefill with three spatially separated needles;
+- one 1,024-token decode stream;
+- four simultaneous 1,024-token decode streams.
+
+The local tokenizer is used only to construct an approximate prompt size. The
+server's Chat Completions usage is authoritative for the actual admitted token
+count and the client-observed first-token timestamp is the prefill boundary.
+
+```bash
+python3 performance/openai_chat_benchmarks.py \
+  --base "$BASE_URL" \
+  --model "$SERVED_MODEL_NAME" \
+  --tokenizer-path /path/to/model-or-tokenizer \
+  --reasoning-effort medium \
+  --max-tokens 1024 \
+  --tests all \
+  --output-dir validation-results/performance-YYYYMMDD-HHMMSS
+```
+
+The four-request test uses a client barrier and lets every stream finish
+naturally. It never cancels sibling requests. Results include per-stream
+post-first-token decode, aggregate batch makespan throughput, usage, raw SSE,
+content/reasoning, metric snapshots, and sampled scheduler/cache state.
 
 ## Current reasoning suite
 
@@ -150,6 +182,26 @@ The targeted run is additional evidence and is not a 30-invocation
 qualification. Tool execution is local and deterministic; no external weather,
 customer, order, inventory, delivery, document, restart, delegation, or
 verification service is contacted.
+
+## Current vision suite
+
+The public `vision_spatial_comments_v1` case is a sanitized reconstruction of
+the real screenshot task used for the 2026-08-27 Flash-Next qualification. It
+generates a bitmap with four vertically ordered comments and submits it through
+ordinary OpenAI multimodal Chat Completions. The model must separately report
+the topmost and bottommost authors and claims, plus the top comment's `512k`,
+`100+ tps`, and `sglang + dflash2` details.
+
+```bash
+python3 validation/run-vision.py --list
+python3 validation/run-vision.py --dry-run
+python3 validation/run-vision.py --smoke
+python3 validation/run-vision.py \
+  --output-dir validation-results/vision-YYYYMMDD-HHMMSS
+```
+
+The 1,024-token default replaces the initial 512-token diagnostic ceiling that
+truncated a semantically correct visible answer during qualification.
 
 ## Sealed controls
 

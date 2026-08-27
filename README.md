@@ -5,8 +5,9 @@ models.**
 
 Point the validation suite at an OpenAI-compatible model server to find out
 whether the served model and runtime can reason through difficult problems, use
-tools correctly, follow multi-step agent workflows, retrieve information from
-long contexts, and sustain useful generation speed.
+tools correctly, follow multi-step agent workflows, read spatial multimodal
+inputs, retrieve information from long contexts, and sustain useful generation
+speed.
 
 The suite saves the requests, responses, scores, and timing data needed to
 inspect a result instead of reducing everything to a single benchmark number.
@@ -133,6 +134,8 @@ python3 validation/run-reasoning.py \
   --execution-profile three-user-1-3-3-1 --dry-run
 python3 validation/run-tools.py --list
 python3 validation/run-tools.py --dry-run
+python3 validation/run-vision.py --dry-run
+python3 validation/run-vision.py --smoke
 python3 validation/run-needle.py --smoke
 ```
 
@@ -162,11 +165,11 @@ Code, and other clients differ from the direct OpenAI Chat Completions suite.
 
 | Path | Contents |
 |---|---|
-| `validation/` | Current reasoning, tool, agent, and long-context suites |
+| `validation/` | Current reasoning, tool, agent, vision, and long-context suites |
 | `docs/cases/` | Human explanations for every frozen case and exact tool expectation |
 | `docs/current-deployment.md` | Selected portable runtime shape, cache architecture, and upstream refresh policy |
 | `results/` | Readable history, machine-readable run records, and release-asset index |
-| `performance/` | Reusable prefill and decode clients |
+| `performance/` | Reusable prefill and decode clients, including the current 64K/490K and 1x/4x Chat Completions harness |
 | `reasoning/`, `tools/` | Additional frozen collectors and regression cases |
 | `baselines/` | Compact reference reports |
 

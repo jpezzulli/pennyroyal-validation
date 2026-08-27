@@ -84,6 +84,8 @@ python3 validation/run-reasoning.py --dry-run
 python3 validation/run-reasoning.py \
   --execution-profile three-user-1-3-3-1 --dry-run
 python3 validation/run-tools.py --dry-run
+python3 validation/run-vision.py --dry-run
+python3 validation/run-vision.py --smoke
 python3 validation/run-needle.py --smoke
 python3 scripts/validate_repository.py
 ```
@@ -97,7 +99,8 @@ Look for values already provided by the operator or current shell environment:
 - `BASE_URL`: OpenAI-compatible API base, normally without `/v1`.
 - `SERVED_MODEL_NAME`: exact model ID returned by `GET /v1/models`.
 - Runtime label: a precise human-readable description saved with the result.
-- Tokenizer path: required only for the tokenizer-exact long-context needle run.
+- Tokenizer path: required for prompt construction by the current performance
+  harness and for the tokenizer-exact long-context needle run.
 
 If both endpoint variables are known, perform the safe discovery check:
 
@@ -122,6 +125,8 @@ it. The operator may choose among:
 - one targeted ordinary tool case;
 - sealed agentic control;
 - sealed natural-decode control;
+- current 64K/490K prefill and 1x/4x decode qualification;
+- current spatial-comment vision qualification;
 - opt-in near-million-token retrieval;
 - a fixture replay or scoring-only task.
 

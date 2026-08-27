@@ -19,10 +19,47 @@ with command-line options. Use a new `--output-dir` for every live run.
    local mock tool results.
 4. `run-needle.py` runs the explicitly acknowledged 994,987-token retrieval
    and immediate arithmetic follow-up.
+5. `run-vision.py` generates and evaluates the public top/bottom spatial-comment
+   image case through ordinary OpenAI multimodal Chat Completions.
+
+The current 64K/490K prefill and 1x/4x decode harness lives at
+`../performance/openai_chat_benchmarks.py`; it is documented in
+[`../docs/suites.md`](../docs/suites.md#current-performance-harness).
 
 The collection runners write JSON or JSON Lines manifests and return nonzero
 when an automatic gate fails. The reasoning score is different: qualitative
 review must be blinded and locked before operational metadata is revealed.
+
+## Vision suite
+
+The public vision fixture reconstructs the spatial reading task used in the
+Flash-Next qualification without redistributing the original social-media
+screenshot. It contains four vertically ordered comment cards. The model must
+keep the topmost and bottommost authors and claims separate, and must extract
+the top comment's context length, decode speed, and serving stack.
+
+Safe inspection does not contact a model:
+
+```bash
+python3 validation/run-vision.py --list
+python3 validation/run-vision.py --dry-run
+python3 validation/run-vision.py --smoke
+python3 validation/run-vision.py --render-fixture /tmp/vision-fixture.png
+```
+
+Run the live case with the 1,024-token visible-answer budget qualified on
+Flash-Next:
+
+```bash
+python3 validation/run-vision.py \
+  --output-dir validation-results/vision-YYYYMMDD-HHMMSS
+```
+
+The runner stores the generated PNG, exact request, raw response, usage,
+reasoning and visible content, fixture hash, timings, and automatic gates.
+The automatic gate requires both endpoint authors and both claims; visual
+quality and whether the two comments were semantically mixed remain reviewable
+from the retained response.
 
 ## Frozen reasoning suite
 

@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "id": "vision_spatial_comments_v1",
+  "description": "A public reconstruction of the spatial comment-reading case used during the Flash-Next qualification.",
+  "prompt": "Read the screenshot spatially. Transcribe the author and main claim of the topmost visible comment, then separately transcribe the author and main claim of the bottommost visible comment. For the top comment, also state its claimed context length, decode speed, and serving stack. Do not mix the two comments.",
+  "comments": [
+    {
+      "position": "topmost",
+      "author": "Turbulent-Alps4046",
+      "text": "Why quantize the KV cache? I get 512k context and 100+ tps decode on one RTX Pro Max Q without quantizing KV, using sglang + dflash2."
+    },
+    {
+      "position": "middle",
+      "author": "stargate425",
+      "text": "That is an interesting comparison; the exact request shape matters."
+    },
+    {
+      "position": "middle",
+      "author": "Brah_ddah",
+      "text": "Long-context behavior should be measured separately from decode."
+    },
+    {
+      "position": "bottommost",
+      "author": "ComposerGen",
+      "text": "People say an RTX Pro 6000 can reach 200 tps with SGLang. Have you tried it? The Qwen3.8-27B cookbook has setup notes."
+    }
+  ],
+  "expected": {
+    "top_author": "Turbulent-Alps4046",
+    "bottom_author": "ComposerGen",
+    "top_context": "512k",
+    "top_decode": "100+ tps",
+    "top_stack": ["sglang", "dflash2"],
+    "bottom_claim_terms": ["200", "RTX Pro 6000", "SGLang"]
+  }
+}
