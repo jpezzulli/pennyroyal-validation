@@ -20,6 +20,7 @@ instead of being normalized into an artificial comparison.
 
 | Date | Model and runtime | Reasoning | Tools | Measured speed |
 |---|---|---:|---:|---|
+| 2026-08-27 | Qwen3.8 Flash-Next NVFP4 · final SGLang native MTP + HiCache/NIXL · medium | 97.49/100 | 27/30 automatic; 30/30 semantic and exact | R 126.26 weighted effective; 3x 326.78 median / 330.31 mean; 1x 171.09; 4x 427.54; 64K prefill 10,104; 490K prefill 7,872 |
 | 2026-08-26 | Qwen3.8-27B Uncensored FP8 · refreshed SGLang DFlash2 + HiCache/NIXL · medium | 95.47/100 | 28/30 automatic; 30/30 semantic and exact | R 160.53 weighted effective; 3x 497.33 median / 490.40 mean; 1x 114.66; 4x 351.15; 64K prefill 6,107; 490K prefill 1,617 |
 | 2026-08-21 | Qwen3.8-27B Uncensored FP8 · SGLang DFlash2 + HiCache/NIXL | 98.26/100 | — | R 124.48; 3x 396.78 median / 400.96 active; 1x 108.75; 4x 390.23; 64K prefill 6,163; 490K prefill 1,618 |
 | 2026-08-18 | Qwen3.8-27B Uncensored FP8 · SGLang DFlash2 | 98.56/100 | 28/30 automatic; 30/30 exact calls | R 125.8; T 132.0 wall / 158.3 engine; 1x 92.9; 4x 324.6; 64K prefill 6,659; 455K prefill 1,755 |
@@ -32,6 +33,33 @@ instead of being normalized into an artificial comparison.
 | 2026-08-10 | Ling 3.0 Flash NVFP4 · vLLM | 73.80/100 | 26/30 automatic; 30/30 semantic and exact | R 70.8; 512-token decode 69.9; 16K prefill 5,994 |
 | 2026-08-02 | DeepSeek-V4-Flash 0731 · mapped-W2 DSpark-4 | 97.07/100 | 30/30 automatic and exact | R 54.92 wall; T 40.36 wall; 995K prefill 1,024.18 |
 | 2026-07-31 | DeepSeek-V4-Flash 0731 · vLLM-MoET | 87.54/100 | 30/30 reviewed in later mapped-W2 passes | R 39.78 wall |
+
+## 2026-08-27 Flash-Next final-runtime details
+
+The full multimodal `RadixArk/Qwen3.8-Flash-Next-NVFP4` checkpoint was tested
+on the final selected runtime with native four-token MTP, FP8 target/native-MTP
+KV, BF16 recurrent state, FlashInfer GDN and CUTLASS MoE, QSA index sharing,
+PLE offload, 524K YaRN context, and the complete 32 GB HiCache/NIXL persistent
+state stack enabled.
+
+Fresh write-through measured **10,103.70 prompt tok/s at 63,864 tokens** and
+**7,872.15 prompt tok/s at 489,879 tokens**; all three long-context needles
+were exact. Bounded decode measured **171.09 tok/s** at one request and
+**427.54 aggregate tok/s** across four simultaneous requests. The four streams
+measured 115.13, 127.56, 126.64, and 122.96 tok/s after their first tokens.
+
+The uncapped medium-reasoning run scored **97.49/100**, generated 139,863 API
+completion tokens, and measured **126.26 token-weighted effective tok/s**.
+Exactly-three-running server telemetry averaged **330.31 tok/s** with a 326.78
+tok/s median. The tool suite completed **30/30 exact and semantic calls** with
+27/30 literal automatic passes; all three misses were evaluator wording
+effects rather than wrong tools or unsafe behavior.
+
+After restart, the same NIXL namespace restored **489,856 of 489,879 prompt
+tokens**. The identical request remained 3/3 exact and reached **62,040.60
+effective prompt tok/s**. The real vision request and sealed agentic control
+passed. See the [detailed report](qwen38-flash-next-nvfp4-final-20260827.md)
+and [machine-readable record](qwen38-flash-next-nvfp4-final-20260827.json).
 
 ## 2026-08-26 refreshed-main DFlash2 details
 
