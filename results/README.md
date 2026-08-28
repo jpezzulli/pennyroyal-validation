@@ -20,6 +20,7 @@ instead of being normalized into an artificial comparison.
 
 | Date | Model and runtime | Reasoning | Tools | Measured speed |
 |---|---|---:|---:|---|
+| 2026-08-28 | Qwen3.8 Flash-Next DeAlign Uncensored NVFP4 · Pennyroyal SGLang native MTP + HiCache/NIXL · medium | 95.55/100 | 28/30 automatic; 30/30 semantic and exact | 1x 145.49; 4x 408.10; 64K prefill 11,897; 490K prefill 7,843 |
 | 2026-08-27 | Qwen3.8 Flash-Next NVFP4 · final SGLang native MTP + HiCache/NIXL · medium | 97.49/100 | 27/30 automatic; 30/30 semantic and exact | R 126.26 weighted effective; 3x 326.78 median / 330.31 mean; 1x 171.09; 4x 427.54; 64K prefill 10,104; 490K prefill 7,872 |
 | 2026-08-26 | Qwen3.8-27B Uncensored FP8 · refreshed SGLang DFlash2 + HiCache/NIXL · medium | 95.47/100 | 28/30 automatic; 30/30 semantic and exact | R 160.53 weighted effective; 3x 497.33 median / 490.40 mean; 1x 114.66; 4x 351.15; 64K prefill 6,107; 490K prefill 1,617 |
 | 2026-08-21 | Qwen3.8-27B Uncensored FP8 · SGLang DFlash2 + HiCache/NIXL | 98.26/100 | — | R 124.48; 3x 396.78 median / 400.96 active; 1x 108.75; 4x 390.23; 64K prefill 6,163; 490K prefill 1,618 |
@@ -33,6 +34,35 @@ instead of being normalized into an artificial comparison.
 | 2026-08-10 | Ling 3.0 Flash NVFP4 · vLLM | 73.80/100 | 26/30 automatic; 30/30 semantic and exact | R 70.8; 512-token decode 69.9; 16K prefill 5,994 |
 | 2026-08-02 | DeepSeek-V4-Flash 0731 · mapped-W2 DSpark-4 | 97.07/100 | 30/30 automatic and exact | R 54.92 wall; T 40.36 wall; 995K prefill 1,024.18 |
 | 2026-07-31 | DeepSeek-V4-Flash 0731 · vLLM-MoET | 87.54/100 | 30/30 reviewed in later mapped-W2 passes | R 39.78 wall |
+
+## 2026-08-28 DeAlign Flash-Next details
+
+`dealignai/Qwen3.8-Flash-Next-UNCENSORED-NVFP4` ran on the Pennyroyal
+Flash-Next runtime at 524K admission with native MTP, FP8 target/native-MTP KV,
+BF16 recurrent state, FP8 PLE, and HiCache/NIXL enabled.
+
+Fresh prefill measured **11,897.17 prompt tok/s at 63,864 tokens** and
+**7,842.58 prompt tok/s at 489,879 tokens**, with all three long-context
+needles exact. Bounded decode measured **145.49 tok/s** at one request and
+**408.10 aggregate tok/s** across four simultaneous requests. The four streams
+measured 104.36, 110.84, 101.92, and 105.62 tok/s after their first tokens.
+
+The selected medium-reasoning result is **95.55/100** across 138,861 completion
+tokens. The first concurrent C6 failed; John selected the passing isolated
+exact-contract rerun as the published C6 result. C4 and C5 were correct but
+generated 77,006 and 38,790 tokens respectively.
+
+The tool suite completed **30/30 exact and semantic calls** with 28/30 literal
+automatic passes. Both literal misses rendered the correct ISO order ETA in
+equivalent natural-language date form. Vision and the sealed agentic control
+passed. The natural 3,072-token control measured 149.29 effective tok/s and
+missed only the direct-token-ID observability gate.
+
+After restart, the identical namespace restored **489,856 of 489,879 prompt
+tokens**, recomputed 23 logical tokens, retained 3/3 exact needles, and reached
+**50,404.95 effective prompt tok/s**. See the
+[detailed report](qwen38-flash-next-dealignai-uncensored-nvfp4-20260828.md)
+and [machine-readable record](qwen38-flash-next-dealignai-uncensored-nvfp4-20260828.json).
 
 ## 2026-08-27 Flash-Next final-runtime details
 
