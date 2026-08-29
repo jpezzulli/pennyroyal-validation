@@ -93,7 +93,6 @@ that measurement was not captured for that run.
 
 | Date | Model and runtime | Reasoning | Tools | Measured speed |
 |---|---|---:|---:|---|
-| 2026-08-28 | Qwen3.8 Flash-Next DeAlign Uncensored NVFP4 · Pennyroyal SGLang native MTP + HiCache/NIXL · medium | 95.55/100 | 28/30 automatic; 30/30 semantic and exact | 1x 145.49; 4x 408.10; 64K prefill 11,897; 490K prefill 7,843 |
 | 2026-08-27 | Qwen3.8 Flash-Next NVFP4 · final SGLang native MTP + HiCache/NIXL · medium | 97.49/100 | 27/30 automatic; 30/30 semantic and exact | R 126.26 weighted; 3x 326.78 median / 330.31 mean; 1x 171.09; 4x 427.54; 64K prefill 10,104; 490K prefill 7,872 |
 | 2026-08-21 | Qwen3.8-27B Uncensored FP8 · SGLang DFlash2 + HiCache/NIXL | 98.26/100 | — | R 124.48; 3x 396.78 median / 400.96 active; 1x 108.75; 4x 390.23; 64K prefill 6,163; 490K prefill 1,618 |
 | 2026-08-18 | Qwen3.8-27B Uncensored FP8 · SGLang DFlash2 | 98.56/100 | 28/30 automatic; 30/30 exact calls | R 125.8; T 132.0 wall / 158.3 engine; 1x 92.9; 4x 324.6 |
