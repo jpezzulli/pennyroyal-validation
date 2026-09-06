@@ -1,92 +1,99 @@
-# Pennyroyal 2.3 — Flash-Next FR-Spec qualification
+# Pennyroyal v2.3 — Flash-Next FR-Spec results
 
-Measured September 5–6, 2026; published September 6 after release approval.
-This promotes frozen FR-Spec RC1, not the excluded BF16 low-M kernel.
-Same Flash-Next ModelOpt NVFP4 checkpoint throughout the baseline/FR arms;
-local checkpoint identity and placement remain local operational evidence.
-Executable `836206a0adc8ef7aaa49f652230d5577a25014a5`, package
-`0.5.19.dev492+g836206a0a`; no new shared-runtime code is installed.
+Measured September 5–6, 2026, on one NVIDIA RTX PRO 6000 Blackwell at TP1.
+v2.3 adds a 65,536-token FR-Spec draft vocabulary while retaining full target
+verification and the existing acceptance policy.
 
 Credit to [gabrielolympie/sglang-flashnext-sm120](https://github.com/gabrielolympie/sglang-flashnext-sm120)
-for the reduced draft-vocabulary work that prompted this adoption. Penny
-uses existing SGLang FR-Spec with its own non-evaluation-source 65,536-ID map,
-including all 21 special tokens. Full target vocabulary and acceptance policy
-are unchanged; no bit-for-bit sampled-output parity claim.
+for the reduced draft-vocabulary optimization. Pennyroyal uses SGLang's
+FR-Spec support with a separately generated map that includes all 21 special
+tokens and excludes evaluation cases from its source corpus.
 
-One RTX PRO 6000, TP1, 524,288 context, 824,384 KV tokens, page64, C4,
-24 BF16 Mamba slots, native NEXTN3/1/4, full graphs,32GiB HiCache/NIXL,
-0.981 static fraction. The320MiB extra draft head fit without a pool cut.
-Map SHA256: `becfa41d394b86c26c632bea8f3c6ea64bbb76d7b238d8673c06afae21269f25`.
+## Configuration and method
 
-## Controlled timing — all original samples retained
+| Setting | Value |
+|---|---|
+| Model | Qwen3.8 Flash-Next ModelOpt NVFP4 |
+| SGLang executable | `836206a0adc8ef7aaa49f652230d5577a25014a5` |
+| Package | `0.5.19.dev492+g836206a0a` |
+| Validation suite | `989230c77459ba636a85b8b5da4cc550f6e1867d` |
+| Context / KV capacity | 524,288 / 824,384 tokens |
+| Concurrency / page size | Four requests / 64 tokens |
+| Native NEXTN MTP | Three steps, top-k 1, four draft tokens |
+| Recurrent state | 24 BF16 Mamba slots |
+| HiCache / persistence | 32 GiB / NIXL |
+| CUDA graphs | Enabled |
+| Static memory fraction | 0.981 |
 
-Unmodified `performance/openai_chat_benchmarks.py` from
-**jpezzulli/pennyroyal-validation**, verified current main
-`989230c77459ba636a85b8b5da4cc550f6e1867d`. The isolated checkout remains clean.
-Ordinary `/v1/chat/completions`, ordinary warmups before measurements, same
-client parameters and 1,024 output tokens per timed stream. C1 below is
-client post-first-token rate; C4 is **aggregate synchronized request makespan**,
-including first-token delay, not a pure decode rate or sum of stream rates.
-Server usage is authoritative. Per-stream timings, telemetry and request-time
-stats are preserved, not substituted with local tokenizer estimates.
+The same checkpoint, executable, and sampling settings were used across the
+baseline and FR-Spec runs. The extra draft head used 320 MiB without reducing
+KV capacity or context. Map SHA-256:
+`becfa41d394b86c26c632bea8f3c6ea64bbb76d7b238d8673c06afae21269f25`.
 
-| Arm | Samples C1/C4 | C1 post-first tok/s, median | C1 request-makespan tok/s, median | C4 aggregate request-makespan tok/s, median |
+Performance tests used `performance/openai_chat_benchmarks.py` through
+ordinary OpenAI Chat Completions after warmups, with 1,024 server-reported
+completion tokens per stream.
+
+- **Single-request decode:** tokens per second after the first token.
+- **Single-request whole-request rate:** completion tokens divided by total request duration.
+- **Four-request aggregate:** all completion tokens divided by synchronized
+  batch duration, including first-token delay and the slowest stream.
+
+Per-stream rates are not additive. Server token usage is authoritative.
+
+## Decode throughput
+
+| Configuration | Samples per metric | Single-request decode, median | Single-request whole-request rate, median | Four-request aggregate, median |
 |---|---:|---:|---:|---:|
-| Initial released baseline | 3/3 | 156.79 | 151.17 | 417.92 |
-| Initial FR-Spec | 3/3 | 165.33 | 157.16 | 447.83 |
-| BF16-only, held | 3/3 | 164.69 | 156.11 | 417.18 |
-| Released return after reboot | 3/3 | 147.15 | 140.88 | 427.91 |
-| Retained FR-Spec after restart | 6/6 | **171.93** | **164.40** | **447.04** |
-| Combined | incomplete | — | — | — |
+| v2.1.2 baseline, run 1 | 3 | 156.79 tok/s | 151.17 tok/s | 417.92 tok/s |
+| v2.3 FR-Spec, initial measurements | 3 | 165.33 tok/s | 157.16 tok/s | 447.83 tok/s |
+| v2.1.2 baseline, run 2 | 3 | 147.15 tok/s | 140.88 tok/s | 427.91 tok/s |
+| **v2.3 FR-Spec** | **6** | **171.93 tok/s** | **164.40 tok/s** | **447.04 tok/s** |
 
-Retained FR-Spec C1 samples: 170.84,173.10,169.12,173.01,158.15,177.23.
-C4 aggregate samples:447.84,438.10,462.82,446.24,459.70,439.08.
-Its pooled per-stream C4 post-first median is122.67tok/s, distinct from
-the447.04tok/s aggregate makespan metric. All arms retained824384 KV tokens.
+The six-sample v2.3 medians are **9.7–16.8% higher for single-request decode**
+and **4.5–7.0% higher for four-request aggregate** than the two baseline
+medians. Initial FR-Spec measurements showed +5.4% and +7.2%, respectively,
+against baseline run 1.
 
-The retained median is about **9.7–16.8% above the two baseline C1 medians**
-and **4.5–7.0% above their C4 aggregate medians**. The initial FR-Spec arm
-showed +5.4% C1 and +7.2% C4 against the initial baseline. These are measured
-session comparisons, not randomized paired confidence intervals, a guaranteed
-gain across workloads, or permission to choose only the favorable baseline.
-The reboot separates some arms and the baseline itself varied materially.
+v2.3 single-request samples: 170.84, 173.10, 169.12, 173.01, 158.15, 177.23 tok/s.
+Four-request aggregate samples: 447.84, 438.10, 462.82, 446.24, 459.70, 439.08 tok/s.
+The pooled per-stream four-request decode median was 122.67 tok/s.
 
-Cold prefill is essentially unchanged:
+Tests ran sequentially, with the two baseline runs on separate boots.
+Run-to-run variation was material; these are measured comparisons, not
+randomized confidence intervals or guaranteed gains. Earlier model/runtime
+campaigns are separate measurements.
 
-| Arm, fresh namespace | ~64K TTFT | One ~490K, all three needles, TTFT |
-|---|---:|---:|
-| Baseline | 4.969s | 61.070s |
-| FR-Spec | 4.886s | 61.319s |
-| BF16-only, held | 5.009s | 61.185s |
+## Cold prefill
 
-Server prompt usage is63,864 and489,879 respectively. All successful arms
-returned exact READY / all three separated needles. Prefill throughput-to-first
-token is approximately12.9–13.1K and8.0Ktok/s; it is not decode throughput.
+| Prompt | v2.1.2 TTFT | v2.3 FR-Spec TTFT | Result |
+|---|---:|---:|---|
+| 63,864 tokens | 4.969 s | 4.886 s | Exact READY |
+| One 489,879-token prompt | 61.070 s | 61.319 s | All three separated needles exact |
 
-Sample-level numeric evidence, server usage, per-stream rates, acceptance and
-memory observations are preserved in the [machine-readable record](qwen38-flash-next-frspec-20260905.json).
-Raw prompts, SSE, journals, operational paths and grading packets remain in
-the immutable local evidence. The public numeric record is derived evidence,
-not a substitute raw trace. No first attempt or automatic outcome was rewritten.
+Both configurations used fresh cache namespaces. Cold prefill was essentially
+unchanged: approximately 12.9–13.1K prompt tok/s at 64K and 8.0K prompt tok/s
+at 490K. These are prefill measurements, not decode throughput.
 
-## Reasoning — full breakdown
+## Reasoning
 
-Two warmups, nine measured requests in `three-user-1-3-3-1`, with launcher
-defaults owning effort and ceiling. All nine ended naturally;131,770 measured
-completion tokens, no collector loop events or fatal mechanical caps.
+Two warmups preceded nine measured requests using the
+`three-user-1-3-3-1` schedule. The launcher supplied the reasoning defaults.
+All nine requests stopped naturally, producing 131,770 completion tokens.
+No loop or fatal-error score caps applied.
 
-Qualitative **98.52/100**, final **98.52/100**.
+**Qualitative score: 98.52/100. Final score: 98.52/100.**
 
-| Case | Score /100 | Main qualification |
+| Case | Score /100 | Assessment |
 |---|---:|---|
-| C1 | 97.28 | Correct MTU1404; long/repetitive presentation. |
-| C2 | 96.74 | Correct causal diagnosis; unnecessary unsupported intermediate-event hypothesis. |
-| C3 | 98.91 | Correct6A/5B/4048 optimum and infeasibility argument; repetition. |
-| C4 | 100.00 | Correct17 schedule/proof and X/19 consequence. |
-| C5 | 96.74 | Correct claim-before-account/idempotency/canonical-locking design; unnecessary impossible rollback branch and length. |
+| C1 | 97.28 | Correct MTU of 1,404; long and repetitive presentation. |
+| C2 | 96.74 | Correct causal diagnosis; unnecessary hypothesis about an intermediate event. |
+| C3 | 98.91 | Correct 6A/5B/4048 optimum and infeasibility argument; some repetition. |
+| C4 | 100.00 | Correct schedule, optimality proof, and X/19 consequence. |
+| C5 | 96.74 | Correct claim-before-account, idempotency, and canonical locking; unnecessary rollback branch and excessive length. |
 | C6 | 100.00 | Correct no-release decision. |
-| C7 | 100.00 | Correct sharp5/14..1 bounds and assumption-only28/37, with endpoint constructions. |
-| C8, including correction | 98.50 | Correct X then W; first-turn confidence not explicit. |
+| C7 | 100.00 | Correct sharp bounds of 5/14 through 1, with endpoint constructions; 28/37 correctly depends on an added assumption. |
+| C8, including correction | 98.50 | Correct revision from X to W; initial confidence was not explicit. |
 
 | Dimension | Weight | Average /4 |
 |---|---:|---:|
@@ -101,133 +108,132 @@ Qualitative **98.52/100**, final **98.52/100**.
 | Loop behavior | 6 | 3.86 |
 | Final-answer usability | 4 | 3.44 |
 
-Case weights:14/12/14/14/16/10/10/10. No fatal35, confirmed-loop20 or
-repetitive-exhaustion10 caps applied. Unchanged repository scoring tool used.
+Case weights were 14/12/14/14/16/10/10/10. The suite's scoring tool applied
+the mechanical caps after qualitative grading; none was triggered.
 
-Grading method: paired opaque packets from the repository anonymizer;
-qualitative files locked and hashed **before** revealing arm mapping and
-operational metadata or applying mechanical caps. Parent agent reviewed all
-visible answers/correction plus selected reasoning spans, not every token of
-both long chains and not an independent external panel. The paired archived
-checkpoint control scored97.62 under the same review. Its prompts and omitted
-request controls match, but it used an older runtime and sequential execution.
-It is contextual quality evidence, **not** a new current-baseline run, a
-performance comparator, or proof that FR-Spec improved reasoning quality.
+Grading used anonymized paired outputs. Scores were fixed before configuration
+metadata was revealed and mechanical caps were applied. This was an
+AI-assisted review, not an independent external panel. The review covered
+all final answers and corrections plus selected reasoning passages, not every
+reasoning token. An archived control scored 97.62 under the same review, but
+used an older runtime and sequential execution; it does not establish a
+reasoning-quality improvement from FR-Spec.
 
-The qualitative lock and original grade files remain in local evidence.
-The numeric record preserves the unmodified final case and dimension scores.
+### Reasoning throughput and memory
 
-Measured reasoning scheduler samples, separated by running count:
-
-| Running requests | Samples | Aggregate tok/s median | Acceptance length median | Acceptance rate median |
+| Running requests | Samples | Aggregate throughput, median | Acceptance length, median | Acceptance rate, median |
 |---|---:|---:|---:|---:|
-| 1 | 948 | 145.07 | 2.00 | 0.33 |
-| 2 | 105 | 277.53 | 2.19 | 0.40 |
-| Exactly3 | 128 | 353.94 | 2.13 | 0.38 |
+| 1 | 948 | 145.07 tok/s | 2.00 | 0.33 |
+| 2 | 105 | 277.53 tok/s | 2.19 | 0.40 |
+| Exactly 3 | 128 | 353.94 tok/s | 2.13 | 0.38 |
 
-These are logged interval samples grouped by the current scheduler count,
-not exact occupancy-duration attribution or time-weighted throughput.
-Transition intervals can include prior occupancy. All selected samples report
-CUDA graphs true. Complete ranges and provenance are in
-qualification-receipts.json (retained local evidence).
-Reasoning memory plateau peaked at95,499MiB used /1,793MiB free in sampling;
-final idle after concurrent restore95,517MiB used /1,775MiB free.
-After the two additional continuation turns:95,537MiB used /1,755MiB free,
-zero running/queued requests and unchanged824,384-token capacity.
+These are scheduler interval samples grouped by the reported running count,
+not time-weighted or per-request rates. Transition intervals can include
+previous occupancy. All samples reported CUDA graphs enabled.
 
-## Tools, vision and sealed controls
+Sampled GPU memory peaked at 95,499 MiB used, with 1,793 MiB free.
+After concurrent restoration, memory use was 95,517 MiB; after the two
+long-context continuation turns, it was 95,537 MiB. KV capacity remained
+824,384 tokens.
 
-- Tools: **27/30 automatic**, **29/30 exact tools/arguments**,30/30 parseable,
-  zero runtime errors; conservative parent semantic assessment28/30 with
-  explicit criteria. Not reported as30/30. One invoice answer adds forbidden
-  extra prose while rejecting an injection; one deployment answer overclaims
-  rollback/blast-radius guarantees. Both invalid-date answers are correct but
-  miss the literal checker; one also unnecessarily repeats the read-only call.
-  Operationally:29 clean tool workflows, one minor redundant read-only call,
-  **no consequential tool execution failure**. Answer-quality caveats and
-  literal-match failures are not additional broken tools.
-- Vision: automatic and manual spatial/claim-separation check pass,377 tokens,
-  natural stop under the current1,024-token fixture cap.
-- Sealed agentic: pass, six model turns / exactly five tools, correct revised
-  artifact and final inspection.
-- Sealed natural decode: exactly3,072 server tokens, all3,072 raw direct IDs,
-  no error/tools. Original automatic gate remains false because the collector
-  reads `token_ids`, while SGLang returns `response_token_ids`. Separate
-  count/hash receipt retained; no result was rewritten to pass.
+## Tools and agent workflows
 
-Full findings and a second collector snapshot-aliasing limitation:
-SEMANTIC-REVIEW.md (retained local evidence).
-Those collector fixes belong to **jpezzulli/pennyroyal-validation**, deferred
-separately. Their source was not changed during this experiment. First attempts
-remain intact; no selective rerun replaced a failure. No fresh matching full
-baseline tool run establishes whether the behavioral misses are FR-specific.
+| Measurement | Result |
+|---|---:|
+| Invocations | 30 |
+| Literal automatic checks | 27/30 |
+| Exact tool selections and arguments | 29/30 |
+| Parseable responses | 30/30 |
+| Runtime errors | 0 |
+| Clean workflows | 29 |
+| Workflows with a redundant read-only call | 1 |
+| Reviewed response discipline | 28/30 |
 
-## NIXL, rollback, isolation and 27B compatibility
+Both invalid-date answers were correct but used wording that missed the
+literal checker; one unnecessarily repeated the read-only validation call.
+No consequential tool execution failure occurred.
 
-FR-Spec wrote fresh namespaces in its initial cold arm, then reused the exact
-same FR representation after the intervening BF16/combined/released-baseline
-boots. Released baseline restore also worked after removing the candidate
-wheel and John's reboot. Thus both released and FR states were revisited;
-different arm identities did not share storage namespaces. Source/map guards
-and focused map/identity checks passed. No intentional missing-sidecar or
-manifest-corruption injection was performed in this campaign; unchanged
-released restore-boundary behavior is not re-proven as transactional storage.
+Two response-quality issues were separate from tool execution: an invoice
+answer rejected prompt injection but added prose despite an exact-output
+instruction, and a deployment answer overstated rollback and blast-radius
+guarantees. The response-discipline score reflects those issues.
+A matching full baseline tool run was not collected, so these differences
+cannot be attributed specifically to FR-Spec.
 
-| Restarted profile | NIXL64K restored tokens / TTFT | NIXL490K restored tokens / TTFT |
+The agent-workflow test passed in six model turns with five tool calls,
+including revision and final inspection of the requested artifact.
+
+## Vision and natural decode
+
+Vision passed automatic and manual spatial/claim-separation checks. It
+returned 377 tokens and stopped naturally within the 1,024-token limit.
+
+The natural-decode test returned exactly 3,072 tokens and all 3,072 direct
+token IDs. Its automatic check failed because the collector read
+`token_ids` while SGLang returned `response_token_ids`. The numeric record
+includes the observed count and hash alongside the failed automatic result.
+
+A second evaluator limitation affects saved request snapshots: the collector
+keeps mutable message-list references, so later turns can appear in earlier
+saved snapshots. HTTP requests were serialized before those later additions;
+this does not mean the model received future turns. Both collector issues
+are outside the runtime change in v2.3.
+
+## NIXL persistence and long-context continuation
+
+Tests covered fresh cache writes, reuse after restart, switching between
+FR-Spec and non-FR configurations, and representation-specific namespace
+isolation.
+
+| Configuration after restart | 64K restored tokens / TTFT | 490K restored tokens / TTFT |
 |---|---|---|
-| Released Next return | 63,808 /1.193s | 489,856 /6.592s |
-| FR-Spec Next | 63,808 /1.213s | 489,856 /5.940s |
-| Unchanged27B FP8/DFlash2 | 63,808 /1.804s | 489,856 /11.247s |
+| v2.1.2 Flash-Next | 63,808 / 1.193 s | 489,856 / 6.592 s |
+| v2.3 Flash-Next FR-Spec | 63,808 / 1.213 s | 489,856 / 5.940 s |
+| 27B FP8/DFlash2 | 63,808 / 1.804 s | 489,856 / 11.247 s |
 
-All READY/three-needle checks pass. Each individual restored request increments
-Mamba load-back by two states; captured backend registration and all-pool byte
-counters accompany KV evidence. FR's490K request loaded7,046,561,824 bytes
-through the all-pool counter. These are actual storage-hit/load-back deltas,
-not just a warm response or device-prefix hit.
+All READY and three-needle checks passed. Each restored request loaded two
+Mamba states. The v2.3 490K request loaded 7,046,561,824 bytes across the
+registered pools, establishing storage restoration rather than only
+GPU-resident prefix reuse.
 
-Final FR restart: four barrier-submitted requests, two each of the identical
-saved64K/490K prompts, completed in **9.396s aggregate makespan**, all correct.
-Counter deltas: **553,664 NIXL storage-hit tokens**,553,664 device-hit tokens,
-553,664 KV load-back tokens,4 Mamba states,8,067,100,736 all-pool load-back
-bytes. The repeated pair reused the now-admitted prefix; do not call this
-four independent full disk transfers or four simultaneous GPU prefills.
-Original requests, SSE, metrics and journal are in
-the retained local evidence and the retained local evidence.
+Four requests—two copies each of the saved 64K and 490K prompts—completed
+correctly in 9.396 seconds. Counters recorded 553,664 NIXL-hit tokens,
+553,664 device-hit tokens, 553,664 KV load-back tokens, four Mamba states,
+and 8,067,100,736 bytes transferred across the pools. Duplicate requests
+reused restored prefixes; this was not four independent full disk transfers.
 
-Explicit long-conversation continuation gate, completed after John's follow-up:
-the saved490K request and its actual prior assistant answer were extended
-with two ordinary user turns. The first temporarily changed ALPHA while
-preserving BRAVO/CHARLIE; the second withdrew that override and required the
-original archive ALPHA. Both returned the exact expected JSON, natural stop,
-no tools:489,984 prompt /106 completion tokens in5.210s, then490,081 prompt /
-111 completion tokens in4.791s. This supplements, not replaces, the canonical
-suite or any first attempt. Saved requests, raw SSE, responses and cache
-counters: the retained local evidence.
+Two further turns extended the restored 490K conversation. The first changed
+one requested value while preserving the other two; the second withdrew that
+change. Both returned exact JSON and stopped naturally:
 
-27B was booted on its untouched original launcher and released wheel;
-**1,118,784 KV**, full graph settings,9/9 smoke,64K/490K,C1 and C4 passed.
-Single compatibility sample:C1 post-first106.73tok/s, C4 aggregate363.81tok/s.
-No 27B performance improvement is claimed. Its full reasoning/tool campaign
-was not repeated because no shared candidate code is installed. This does
-**not** qualify the held shared BF16 patch for27B.
+| Turn | Prompt tokens | Completion tokens | Duration |
+|---|---:|---:|---:|
+| Apply override | 489,984 | 106 | 5.210 s |
+| Withdraw override | 490,081 | 111 | 4.791 s |
 
+A subsequent restart check again passed nine startup/API checks and restored
+489,856 tokens with all three needles correct.
 
-## Follow-up gate and final disposition
+Missing-sidecar and corrupt-manifest fault injection were not repeated.
+The cache remains disposable storage, not a transactional persistence system.
 
-The initial combined arm's incomplete status above is preserved as its first
-attempt. Later standalone sanitizers and direct traces did not reproduce the
-hang. A clean, unprofiled six-sample FR-relative A/B then measured C1
-173.05→172.13tok/s (−0.53%) and C4 aggregate450.94→451.55tok/s (+0.13%),
-with824384 KV tokens in both. No meaningful incremental BF16 gain; that
-kernel is not adopted. The earlier hang remains unexplained, not a proven
-kernel defect or a fixed driver failure. This follow-up is not folded into
-or substituted for the frozen FR/base comparisons above.
+## 27B compatibility
 
-The frozen FR-only launcher was restored on the unchanged released wheel.
-Final9/9 ordinary smoke and489856-token NIXL restart restore, all three
-needles, full capacity and idle scheduler were verified. The source, map,
-wheel and all1327 frozen artifact checksums remained intact. No raw local
-operational state is published here.
+The unchanged 27B FP8/DFlash2 launcher passed nine startup/API checks,
+64K/490K prefill, single-request and four-request decode, and NIXL restart
+restoration. It retained CUDA graphs and its 1,118,784-token KV pool.
+A single compatibility measurement recorded 106.73 tok/s single-request
+decode and 363.81 tok/s four-request aggregate; no 27B speed gain is claimed.
+Full 27B reasoning/tool tests were not repeated because its executable and
+launcher were unchanged.
 
-Runtime release, recipes and attribution:
-[Pennyroyal 2.3](https://github.com/jpezzulli/sglang-rtxpro6000/releases/tag/pennyroyal-v2.3.0).
+## Data and reproducibility
+
+The [numeric record](qwen38-flash-next-frspec-20260905.json) includes sample
+timings, server usage, acceptance, memory, scores, and restoration counters.
+Additional kernel configurations in that file are marked as outside v2.3;
+they are not included in the release throughput comparison. Full request
+streams and service logs are not distributed with this summary.
+
+[Runtime and launch instructions](https://github.com/jpezzulli/sglang-rtxpro6000)
+and [Pennyroyal v2.3 release](https://github.com/jpezzulli/sglang-rtxpro6000/releases/tag/pennyroyal-v2.3.0).

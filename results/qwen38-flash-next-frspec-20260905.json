@@ -4,10 +4,10 @@
   "date": "2026-09-05",
   "publication_date": "2026-09-06",
   "model": "Qwen3.8 Flash-Next ModelOpt NVFP4",
-  "model_identity_scope": "Same checkpoint across baseline and FR arms; local checkpoint identity/placement retained only in local evidence.",
+  "model_identity_scope": "The same Flash-Next checkpoint was used for the baseline and FR-Spec measurements.",
   "hardware": "one NVIDIA RTX PRO 6000 Blackwell Workstation Edition, SM120, TP1",
   "runtime": {
-    "release": "pennyroyal-v2.3.0",
+    "release": "v2.3",
     "commit": "836206a0adc8ef7aaa49f652230d5577a25014a5",
     "package": "0.5.19.dev492+g836206a0a",
     "wheel_sha256": "96cb28701ac6f2ad1523e5607218f4fa68d9f9bb26041d6f36f36e2a39362542",
@@ -21,12 +21,13 @@
     "gdn_dtype": "bfloat16",
     "speculation": "NEXTN 3 steps/top-k 1/4 draft tokens",
     "acceptance_policy": "unchanged",
-    "cuda_graphs": true
+    "cuda_graphs": true,
+    "release_tag": "pennyroyal-v2.3.0"
   },
   "credit": {
     "repository": "https://github.com/gabrielolympie/sglang-flashnext-sm120",
     "revision": "67d2f9234fa45ae1339f0d53cd37cb695e9c6493",
-    "scope": "Reduced native-MTP draft vocabulary adoption; independently built map, existing SGLang FR-Spec support"
+    "scope": "Flash-Next reduced draft-vocabulary optimization; Pennyroyal-generated map using SGLang FR-Spec."
   },
   "map": {
     "size": 65536,
@@ -40,14 +41,16 @@
       "c1": "Client post-first-token rate, not whole-request rate",
       "c4": "All completion tokens divided by synchronized whole-request makespan, including TTFT; not sum of stream rates",
       "usage": "Server authoritative",
-      "design": "Sequential session arms; two baseline boots separated by reboot, not randomized confidence bounds"
+      "design": "Sequential measurements with two baseline boots, not a randomized benchmark or confidence interval."
     },
     "arms": {
       "baseline": {
         "identity": {
           "arm": "baseline",
           "kv_tokens": 824384,
-          "package": "0.5.19.dev492+g836206a0a"
+          "package": "0.5.19.dev492+g836206a0a",
+          "display_name": "v2.1.2 baseline, run 1",
+          "included_in_v23": false
         },
         "samples": [
           {
@@ -393,7 +396,9 @@
         "identity": {
           "arm": "frspec",
           "kv_tokens": 824384,
-          "package": "0.5.19.dev492+g836206a0a"
+          "package": "0.5.19.dev492+g836206a0a",
+          "display_name": "v2.3 FR-Spec, initial measurements",
+          "included_in_v23": true
         },
         "samples": [
           {
@@ -739,7 +744,9 @@
         "identity": {
           "arm": "bf16",
           "kv_tokens": 824384,
-          "package": "0.5.19.dev493+g84c3a464a"
+          "package": "0.5.19.dev493+g84c3a464a",
+          "display_name": "Additional BF16 low-M kernel configuration",
+          "included_in_v23": false
         },
         "samples": [
           {
@@ -1085,7 +1092,9 @@
         "identity": {
           "arm": "combined",
           "kv_tokens": 824384,
-          "package": "0.5.19.dev493+g84c3a464a"
+          "package": "0.5.19.dev493+g84c3a464a",
+          "display_name": "FR-Spec with additional BF16 low-M kernel",
+          "included_in_v23": false
         },
         "samples": [],
         "medians": {}
@@ -1094,7 +1103,9 @@
         "identity": {
           "arm": "baseline-return",
           "kv_tokens": 824384,
-          "package": "0.5.19.dev492+g836206a0a"
+          "package": "0.5.19.dev492+g836206a0a",
+          "display_name": "v2.1.2 baseline, run 2",
+          "included_in_v23": false
         },
         "samples": [
           {
@@ -1440,7 +1451,9 @@
         "identity": {
           "arm": "frspec-qualified",
           "kv_tokens": 824384,
-          "package": "0.5.19.dev492+g836206a0a"
+          "package": "0.5.19.dev492+g836206a0a",
+          "display_name": "v2.3 FR-Spec",
+          "included_in_v23": true
         },
         "samples": [
           {
@@ -2047,7 +2060,9 @@
         "identity": {
           "arm": "27b-released",
           "kv_tokens": 1118784,
-          "package": "0.5.19.dev492+g836206a0a"
+          "package": "0.5.19.dev492+g836206a0a",
+          "display_name": "27B FP8/DFlash2 compatibility check",
+          "included_in_v23": true
         },
         "samples": [
           {
@@ -2310,7 +2325,7 @@
     "minimum_gpu_free_mib": 1793,
     "execution_profile": "three-user-1-3-3-1",
     "warmups": 2,
-    "grading": "Opaque paired packets; qualitative lock before mapping/operational metadata and mechanical caps; parent review, not independent panel"
+    "grading": "AI-assisted review of anonymized paired outputs; qualitative scores fixed before configuration metadata and mechanical caps. All final answers/corrections and selected reasoning passages reviewed; not an independent external panel."
   },
   "tools": {
     "invocations": 30,
@@ -2424,11 +2439,13 @@
     ]
   },
   "limitations": [
-    "Frozen automatic failures and first attempts retained; collector token-ID and mutable-snapshot bugs not fixed by this release.",
-    "BF16 low-M kernel arms are excluded from release; initial combined hang remains unexplained.",
-    "No full new 27B reasoning/tool campaign; original recipe/build boot/smoke/prefill/C1/C4/NIXL checked.",
-    "No fresh matching full baseline tools campaign attributes behavioral misses specifically to FR-Spec.",
-    "No missing-sidecar or manifest corruption injection repeated; cache is not claimed transactional.",
-    "Raw service journals, host state, conversations and traces retained locally; this publication is compact derived evidence."
+    "Performance measurements are sequential and include run-to-run variation; they are not randomized confidence intervals.",
+    "The natural-decode collector expected a different token-ID field; its automatic failure and observed 3072 IDs are both recorded.",
+    "Saved request snapshots can include later message additions because the collector stores mutable lists; actual sent HTTP requests were serialized earlier.",
+    "Full 27B reasoning/tool tests were not repeated; startup, prefill, single/concurrent decode and NIXL restoration passed with its unchanged runtime and launcher.",
+    "A matching full baseline tool run was not collected, so response-quality differences cannot be attributed specifically to FR-Spec.",
+    "Missing-sidecar and corrupt-manifest fault injection were not repeated; cache storage is disposable, not transactional.",
+    "Additional BF16 kernel configurations are outside v2.3. Their first combined run stalled during prefill; subsequent testing did not reproduce or explain the stall.",
+    "This record contains numeric summaries, not full request streams or service logs."
   ]
 }

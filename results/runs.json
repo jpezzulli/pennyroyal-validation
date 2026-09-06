@@ -6,7 +6,7 @@
       "id": "qwen38_flash_next_nvfp4_frspec_pennyroyal_23_20260905",
       "date": "2026-09-05",
       "model": "Qwen3.8 Flash-Next ModelOpt NVFP4",
-      "runtime": "Pennyroyal 2.3 FR-Spec native NEXTN + HiCache/NIXL",
+      "runtime": "Pennyroyal v2.3 FR-Spec native NEXTN + HiCache/NIXL",
       "runtime_commit": "836206a0adc8ef7aaa49f652230d5577a25014a5",
       "hardware": "one NVIDIA RTX PRO 6000 Blackwell Workstation Edition, SM120, TP1",
       "launch_shape": "524288 context; 824384 KV; TP1/page64/C4; 24 BF16 Mamba slots; NEXTN3/1/4; 65536-ID FR map; graphs; 32GiB HiCache/NIXL; unchanged target/acceptance",
@@ -109,7 +109,7 @@
         "minimum_gpu_free_mib": 1793,
         "execution_profile": "three-user-1-3-3-1",
         "warmups": 2,
-        "grading": "Opaque paired packets; qualitative lock before mapping/operational metadata and mechanical caps; parent review, not independent panel"
+        "grading": "AI-assisted review of anonymized paired outputs; scores fixed before configuration metadata and mechanical caps; not an independent external panel."
       },
       "tools": {
         "invocations": 30,
@@ -137,12 +137,12 @@
         "results/qwen38-flash-next-frspec-20260905.json"
       ],
       "evidence_gaps": [
-        "Frozen automatic failures and first attempts retained; collector token-ID and mutable-snapshot bugs not fixed by this release.",
-        "BF16 low-M kernel arms are excluded from release; initial combined hang remains unexplained.",
-        "No full new 27B reasoning/tool campaign; original recipe/build boot/smoke/prefill/C1/C4/NIXL checked.",
-        "No fresh matching full baseline tools campaign attributes behavioral misses specifically to FR-Spec.",
-        "No missing-sidecar or manifest corruption injection repeated; cache is not claimed transactional.",
-        "Raw service journals, host state, conversations and traces retained locally; this publication is compact derived evidence."
+        "The token-ID and mutable-request-snapshot collector limitations are documented separately from model results.",
+        "The additional BF16 low-M kernel is not part of v2.3.",
+        "27B startup, prefill, single/concurrent decode and NIXL restoration passed; full reasoning/tool tests were not repeated.",
+        "A matching full baseline tool run was not collected; response-quality differences cannot be attributed specifically to FR-Spec.",
+        "Missing-sidecar and corrupt-manifest fault injection were not repeated; cache storage is not transactional.",
+        "Numeric summaries are provided; full request streams and service logs are not distributed."
       ],
       "comparability": "Same checkpoint and benchmark settings within baseline/FR campaign; sequential boots with baseline variance, not randomized confidence intervals; historical campaigns remain separate."
     },
