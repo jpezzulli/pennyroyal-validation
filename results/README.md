@@ -20,6 +20,7 @@ instead of being normalized into an artificial comparison.
 
 | Date | Model and runtime | Reasoning | Tools | Measured speed |
 |---|---|---:|---:|---|
+| 2026-09-05 | [Qwen3.8 Flash-Next NVFP4 · Pennyroyal 2.3 FR-Spec + HiCache/NIXL](qwen38-flash-next-frspec-20260905.md) | 98.52/100 | 27/30 literal; 29/30 exact; 29 clean workflows + 1 redundant read-only call | 1x 171.93 median; 4x 447.04 median; 64K/490K TTFT 4.886/61.319 s; full 824,384 KV |
 | 2026-08-27 | Qwen3.8 Flash-Next NVFP4 · final SGLang native MTP + HiCache/NIXL · medium | 97.49/100 | 27/30 automatic; 30/30 semantic and exact | R 126.26 weighted effective; 3x 326.78 median / 330.31 mean; 1x 171.09; 4x 427.54; 64K prefill 10,104; 490K prefill 7,872 |
 | 2026-08-26 | Qwen3.8-27B Uncensored FP8 · refreshed SGLang DFlash2 + HiCache/NIXL · medium | 95.47/100 | 28/30 automatic; 30/30 semantic and exact | R 160.53 weighted effective; 3x 497.33 median / 490.40 mean; 1x 114.66; 4x 351.15; 64K prefill 6,107; 490K prefill 1,617 |
 | 2026-08-21 | Qwen3.8-27B Uncensored FP8 · SGLang DFlash2 + HiCache/NIXL | 98.26/100 | — | R 124.48; 3x 396.78 median / 400.96 active; 1x 108.75; 4x 390.23; 64K prefill 6,163; 490K prefill 1,618 |
