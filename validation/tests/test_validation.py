@@ -106,8 +106,13 @@ class ReasoningSuiteTests(unittest.TestCase):
         )
 
     def score(self, grade=None):
+        # The archived 2026-08-02 grade was locked before the genuine-loop-only
+        # correction, so it is re-scored through the explicit legacy path.
         return reasoning_scorer.score_grade(
-            grade or self.grade, reasoning_cases.CASES, self.rubric
+            grade or self.grade,
+            reasoning_cases.CASES,
+            self.rubric,
+            legacy_loop_policy=True,
         )
 
     def test_frozen_request_count(self):
@@ -279,6 +284,427 @@ class ReasoningSuiteTests(unittest.TestCase):
         supplied = set(self.grade["cases"]["C8"]) - {"note"}
         self.assertEqual(supplied, expected)
         self.assertEqual(self.score()["final_score"], 97.07)
+
+
+class ReasoningLoopPenaltyPolicyTests(unittest.TestCase):
+    """Repetition and long xhigh deliberation are not quality detractors."""
+
+    def setUp(self):
+        self.rubric = json.loads(
+            (ROOT / "cases/reasoning-rubric.json").read_text(encoding="utf-8")
+        )
+
+    def full_credit_grade(self):
+        grade = {
+            "candidate_id": "candidate-loop-policy",
+            "scale": "0-4",
+            "fatal_findings": [],
+            "cases": {},
+        }
+        for case in reasoning_cases.CASES:
+            dimensions = reasoning_scorer.expected_case_dimensions(
+                case["id"], self.rubric
+            )
+            entry = {dimension: 4 for dimension in sorted(dimensions)}
+            entry["note"] = (
+                "Long xhigh trace: rechecked assumptions, revisited two "
+                "alternatives, redrew the derivation, then concluded."
+            )
+            grade["cases"][case["id"]] = entry
+        return grade
+
+    def score(self, grade, **kwargs):
+        return reasoning_scorer.score_grade(
+            grade, reasoning_cases.CASES, self.rubric, **kwargs
+        )
+
+    def test_full_credit_xhigh_reconsideration_keeps_full_marks(self):
+        result = self.score(self.full_credit_grade())
+        self.assertEqual(result["final_score"], 100.0)
+        self.assertEqual(result["fatal_findings"], [])
+        self.assertEqual(
+            result["loop_policy"], self.rubric["loop_policy"]["version"]
+        )
+
+    def test_unsupported_loop_deduction_without_evidence_is_rejected(self):
+        grade = self.full_credit_grade()
+        grade["cases"]["C4"]["loop_behavior"] = 2
+        with self.assertRaisesRegex(ValueError, "C4.*loop_behavior"):
+            self.score(grade)
+
+    def test_repetition_only_loop_deduction_is_rejected(self):
+        grade = self.full_credit_grade()
+        grade["cases"]["C4"]["loop_behavior"] = 2
+        grade["cases"]["C4"]["deduction_justifications"] = {
+            "loop_behavior": {
+                "category": "verbosity",
+                "evidence": "the reasoning was long and repetitive",
+            }
+        }
+        with self.assertRaisesRegex(ValueError, "non-detractor"):
+            self.score(grade)
+
+    def test_answer_defect_cannot_dock_loop_behavior(self):
+        grade = self.full_credit_grade()
+        grade["cases"]["C4"]["loop_behavior"] = 0
+        grade["cases"]["C4"]["deduction_justifications"] = {
+            "loop_behavior": {
+                "category": "incorrect_final_conclusion",
+                "evidence": "A wrong conclusion but no loop.",
+            }
+        }
+        with self.assertRaisesRegex(ValueError, "only be docked for a genuine-loop"):
+            self.score(grade)
+
+    def test_every_docked_dimension_needs_substantive_evidence(self):
+        docked = (
+            ("C8", "revision_quality"),
+            ("C1", "correctness"),
+            ("C2", "evidence_discipline"),
+            ("C3", "constraint_preservation"),
+            ("C4", "contradiction_detection"),
+            ("C5", "unsupported_assumptions"),
+            ("C6", "confidence_calibration"),
+            ("C7", "final_answer_usability"),
+        )
+        for case_id, dimension in docked:
+            with self.subTest(case_id=case_id, dimension=dimension):
+                grade = self.full_credit_grade()
+                grade["cases"][case_id][dimension] = 0
+                grade["cases"][case_id]["note"] = (
+                    "Repetitive reconsideration and long reasoning; the final "
+                    "answer and the correction are correct."
+                )
+                with self.assertRaisesRegex(ValueError, dimension):
+                    self.score(grade)
+
+    def test_genuine_loop_category_cannot_dock_an_answer_dimension(self):
+        grade = self.full_credit_grade()
+        grade["cases"]["C5"]["loop_behavior"] = 2
+        grade["cases"]["C5"]["technical_reasoning"] = 2
+        grade["cases"]["C5"]["deduction_justifications"] = {
+            "loop_behavior": {
+                "category": "non_converging_repetition",
+                "evidence": "successive restatements add no new work",
+            },
+            "technical_reasoning": {
+                "category": "non_converging_repetition",
+                "evidence": "the trace was long",
+            },
+        }
+        with self.assertRaisesRegex(
+            ValueError, "charged only through loop_behavior"
+        ):
+            self.score(grade)
+
+    def test_substantive_deduction_in_an_answer_dimension_is_accepted(self):
+        accepted = (
+            ("C1", "correctness", "unsupported_claim"),
+            ("C2", "evidence_discipline", "unsupported_claim"),
+            ("C3", "constraint_preservation", "missed_explicit_requirement"),
+            ("C4", "technical_reasoning", "incomplete_proof"),
+            ("C4", "contradiction_detection", "incomplete_proof"),
+            ("C5", "unsupported_assumptions", "unsupported_claim"),
+            ("C6", "confidence_calibration", "unsupported_claim"),
+            ("C7", "final_answer_usability", "missing_or_unusable_final_answer"),
+            ("C8", "revision_quality", "failed_correction"),
+        )
+        for case_id, dimension, category in accepted:
+            with self.subTest(case_id=case_id, dimension=dimension):
+                grade = self.full_credit_grade()
+                grade["cases"][case_id][dimension] = 2
+                grade["cases"][case_id]["deduction_justifications"] = {
+                    dimension: {
+                        "category": category,
+                        "evidence": "quoted from the blinded response text",
+                    }
+                }
+                result = self.score(grade)
+                self.assertLess(result["final_score"], 100)
+                self.assertLess(result["case_scores"][case_id], 100)
+                self.assertEqual(result["dimension_averages"]["loop_behavior"], 4.0)
+                untouched = "C1" if case_id != "C1" else "C2"
+                self.assertEqual(result["case_scores"][untouched], 100)
+
+    def test_evidence_backed_genuine_loop_is_still_penalized(self):
+        grade = self.full_credit_grade()
+        grade["cases"]["C5"]["loop_behavior"] = 1
+        grade["cases"]["C5"]["deduction_justifications"] = {
+            "loop_behavior": {
+                "category": "identical_block_repeat",
+                "evidence": (
+                    "one 392-token block recurs four consecutive times and the "
+                    "response never emits a final answer"
+                ),
+            }
+        }
+        grade["fatal_findings"] = [
+            {"cap": "confirmed_reasoning_loop", "case_id": "C5"}
+        ]
+        result = self.score(grade)
+        self.assertEqual(result["final_score"], 20)
+        self.assertLess(result["case_scores"]["C5"], 100)
+        self.assertEqual(result["case_scores"]["C1"], 100)
+        self.assertEqual(result["dimension_averages"]["correctness"], 4.0)
+        self.assertEqual(result["dimension_averages"]["loop_behavior"], 3.52)
+
+    def test_genuine_loop_claim_without_loop_deduction_is_rejected(self):
+        grade = self.full_credit_grade()
+        grade["cases"]["C3"]["deduction_justifications"] = {
+            "loop_behavior": {
+                "category": "non_converging_repetition",
+                "evidence": "the same proof is restated without progress",
+            }
+        }
+        with self.assertRaisesRegex(ValueError, "full credit"):
+            self.score(grade)
+
+    def test_similarity_flag_or_output_cap_alone_cannot_confirm_a_loop_cap(self):
+        for cap in (
+            "confirmed_reasoning_loop",
+            "repetitive_32768_exhaustion_without_usable_answer",
+        ):
+            with self.subTest(cap=cap):
+                grade = self.full_credit_grade()
+                grade["fatal_findings"] = [{"cap": cap, "case_id": "C5"}]
+                with self.assertRaisesRegex(ValueError, cap):
+                    self.score(grade)
+
+    def test_unusable_final_answer_supports_the_exhaustion_cap(self):
+        grade = self.full_credit_grade()
+        grade["cases"]["C5"]["loop_behavior"] = 1
+        grade["cases"]["C5"]["final_answer_usability"] = 1
+        grade["cases"]["C5"]["deduction_justifications"] = {
+            "loop_behavior": {
+                "category": "non_converging_repetition",
+                "evidence": "successive restatements add no new work",
+            },
+            "final_answer_usability": {
+                "category": "missing_or_unusable_final_answer",
+                "evidence": "no visible final answer was produced",
+            },
+        }
+        grade["fatal_findings"] = [
+            {
+                "cap": "repetitive_32768_exhaustion_without_usable_answer",
+                "case_id": "C5",
+            }
+        ]
+        self.assertEqual(self.score(grade)["final_score"], 10)
+
+    def test_guarded_cap_cannot_rest_on_an_unrelated_case(self):
+        for cap, supporting_dimension, category in (
+            (
+                "repetitive_32768_exhaustion_without_usable_answer",
+                "final_answer_usability",
+                "missing_or_unusable_final_answer",
+            ),
+            (
+                "confirmed_reasoning_loop",
+                "loop_behavior",
+                "non_converging_repetition",
+            ),
+        ):
+            with self.subTest(cap=cap):
+                grade = self.full_credit_grade()
+                grade["cases"]["C1"][supporting_dimension] = 2
+                grade["cases"]["C1"]["deduction_justifications"] = {
+                    supporting_dimension: {
+                        "category": category,
+                        "evidence": "an unrelated, real deduction on C1",
+                    }
+                }
+                grade["fatal_findings"] = [{"cap": cap, "case_id": "C5"}]
+                with self.assertRaisesRegex(ValueError, r"C5"):
+                    self.score(grade)
+
+    def test_undocked_annotation_cannot_confirm_a_guarded_cap(self):
+        grade = self.full_credit_grade()
+        grade["cases"]["C1"]["deduction_justifications"] = {
+            "final_answer_usability": {
+                "category": "missing_or_unusable_final_answer",
+                "evidence": "An unrelated absence claim.",
+            }
+        }
+        grade["fatal_findings"] = [
+            {
+                "cap": "repetitive_32768_exhaustion_without_usable_answer",
+                "case_id": "C5",
+            }
+        ]
+        with self.assertRaisesRegex(ValueError, "full credit"):
+            self.score(grade)
+
+    def test_guarded_cap_requires_a_case_id(self):
+        grade = self.full_credit_grade()
+        grade["cases"]["C5"]["loop_behavior"] = 1
+        grade["cases"]["C5"]["deduction_justifications"] = {
+            "loop_behavior": {
+                "category": "identical_block_repeat",
+                "evidence": "the same 64-token block recurs four times",
+            }
+        }
+        grade["fatal_findings"] = [{"cap": "confirmed_reasoning_loop"}]
+        with self.assertRaisesRegex(ValueError, "case_id"):
+            self.score(grade)
+        for unknown in ("C9", "", None):
+            with self.subTest(case_id=unknown):
+                grade = self.full_credit_grade()
+                grade["cases"]["C5"]["loop_behavior"] = 1
+                grade["cases"]["C5"]["deduction_justifications"] = {
+                    "loop_behavior": {
+                        "category": "identical_block_repeat",
+                        "evidence": "the same 64-token block recurs four times",
+                    }
+                }
+                grade["fatal_findings"] = [
+                    {"cap": "confirmed_reasoning_loop", "case_id": unknown}
+                ]
+                with self.assertRaisesRegex(ValueError, "case_id"):
+                    self.score(grade)
+
+    def test_guarded_cap_rejects_wrong_supporting_dimension(self):
+        grade = self.full_credit_grade()
+        grade["cases"]["C5"]["final_answer_usability"] = 1
+        grade["cases"]["C5"]["deduction_justifications"] = {
+            "final_answer_usability": {
+                "category": "missed_explicit_requirement",
+                "evidence": "the answer omitted a required field",
+            }
+        }
+        grade["fatal_findings"] = [
+            {
+                "cap": "repetitive_32768_exhaustion_without_usable_answer",
+                "case_id": "C5",
+            }
+        ]
+        with self.assertRaisesRegex(ValueError, "missing_or_unusable_final_answer"):
+            self.score(grade)
+
+    def test_same_case_evidence_supports_both_guarded_caps(self):
+        grade = self.full_credit_grade()
+        grade["cases"]["C5"]["loop_behavior"] = 1
+        grade["cases"]["C5"]["final_answer_usability"] = 1
+        grade["cases"]["C5"]["deduction_justifications"] = {
+            "loop_behavior": {
+                "category": "identical_block_repeat",
+                "evidence": "one block recurs four consecutive times",
+            },
+            "final_answer_usability": {
+                "category": "missing_or_unusable_final_answer",
+                "evidence": "no visible final answer was produced",
+            },
+        }
+        grade["fatal_findings"] = [
+            {"cap": "confirmed_reasoning_loop", "case_id": "C5"},
+            {
+                "cap": "repetitive_32768_exhaustion_without_usable_answer",
+                "case_id": "C5",
+            },
+        ]
+        result = self.score(grade)
+        self.assertEqual(result["final_score"], 10)
+        self.assertEqual(result["case_scores"]["C1"], 100)
+
+    def test_repetition_cannot_be_smuggled_into_other_dimensions(self):
+        for dimension, category in (
+            ("technical_reasoning", "reconsideration"),
+            ("final_answer_usability", "output_length"),
+        ):
+            with self.subTest(dimension=dimension):
+                grade = self.full_credit_grade()
+                grade["cases"]["C3"][dimension] = 3
+                grade["cases"]["C3"]["deduction_justifications"] = {
+                    dimension: {
+                        "category": category,
+                        "evidence": "the answer spent too long deliberating",
+                    }
+                }
+                with self.assertRaisesRegex(ValueError, "non-detractor"):
+                    self.score(grade)
+
+    def test_archived_grade_needs_the_explicit_legacy_flag(self):
+        archived = json.loads(
+            (ROOT / "fixtures/reasoning-dspark4-grade.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        self.assertEqual(
+            self.score(archived, legacy_loop_policy=True)["final_score"], 97.07
+        )
+        with self.assertRaisesRegex(ValueError, "legacy-loop-policy"):
+            self.score(archived)
+
+    def test_exported_grading_packet_communicates_the_rule(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            packet_path = Path(temporary) / "grading-packet.json"
+            completed = subprocess.run(
+                [
+                    sys.executable,
+                    str(ROOT / "anonymize-reasoning.py"),
+                    "--suite",
+                    str(ROOT / "cases/reasoning.py"),
+                    "--results",
+                    str(ROOT / "fixtures/reasoning-replay.jsonl"),
+                    "--output",
+                    str(packet_path),
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+            self.assertEqual(completed.returncode, 0, completed.stderr)
+            packets = json.loads(packet_path.read_text(encoding="utf-8"))
+        self.assertEqual(len(packets), len(reasoning_cases.CASES))
+        for packet in packets:
+            guidance = packet["grading_guidance"]
+            policy = guidance["loop_policy"]
+            self.assertEqual(policy["version"], "genuine-loop-only-v1")
+            self.assertIn("repetition", policy["non_detractors"])
+            self.assertIn("unsupported_claim", policy["substantive_defect_categories"])
+            self.assertIn(
+                "non_converging_repetition", policy["genuine_loop_categories"]
+            )
+            self.assertNotIn(
+                "repetition", policy["substantive_defect_categories"]
+            )
+            self.assertEqual(
+                guidance["required_justification_field"],
+                "deduction_justifications",
+            )
+            self.assertIn("not deductions", guidance["loop_penalties"])
+            self.assertIn("Every dimension", guidance["loop_penalties"])
+            self.assertIn("only for a genuine-loop", guidance["loop_penalties"])
+
+    def test_protocol_copies_state_the_rule(self):
+        for path in (
+            ROOT / "cases/reasoning-protocol.md",
+            ROOT.parent / "reasoning/design/protocol.md",
+        ):
+            self.assertIn("Repetition is not a defect", path.read_text(encoding="utf-8"), str(path))
+
+    def test_canonical_rubric_copies_match(self):
+        current = (ROOT / "cases/reasoning-rubric.json").read_text(encoding="utf-8")
+        design = (ROOT.parent / "reasoning/design/rubric.json").read_text(encoding="utf-8")
+        self.assertEqual(current, design)
+
+    def test_case_document_no_longer_calls_long_answers_detracting(self):
+        text = (ROOT.parent / "docs/cases/reasoning.md").read_text(encoding="utf-8")
+        self.assertNotIn("may lose loop-efficiency", text)
+        self.assertIn("genuine-loop-only", text)
+
+    def test_hard_loop_detection_still_flags_real_loops(self):
+        block = " ".join(f"token{index}" for index in range(64)) + " "
+        units = reasoning_runner.loop_detection_units(block * 4)
+        self.assertEqual(
+            reasoning_runner.exact_block_loop(units),
+            {"type": "exact_block_x4", "block_tokens": 64},
+        )
+        sentence = "The same derivation is repeated again and again here. " * 10
+        self.assertEqual(
+            reasoning_runner.sentence_loop(sentence)["type"],
+            "normalized_sentence_x10",
+        )
 
 
 class ToolSuiteTests(unittest.TestCase):

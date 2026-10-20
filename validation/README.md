@@ -95,11 +95,16 @@ python3 validation/run-reasoning.py \
 python3 validation/run-reasoning.py \
   --replay validation/fixtures/reasoning-replay.jsonl
 python3 validation/score-reasoning.py \
-  --grade validation/fixtures/reasoning-dspark4-grade.json
+  --grade validation/fixtures/reasoning-dspark4-grade.json \
+  --legacy-loop-policy
 ```
 
 The final command deterministically reproduces the published **97.07/100**
-aggregate from the locked historical grade. It does not regrade prose.
+aggregate from the locked historical grade. It does not regrade prose. The
+`--legacy-loop-policy` flag is required only because that archived grade was
+locked before the genuine-loop-only correction and therefore contains
+repetition-based `loop_behavior` deductions without evidence records; it is a
+read-only reinterpretation and rewrites nothing.
 
 Run a new collection:
 
@@ -118,6 +123,23 @@ without runtime, token, timing, finish, or loop metadata; then use
 `score-reasoning.py` to calculate per-case, per-dimension, aggregate, and
 fatal-capped results. Reviewer judgment means a nondeterministic grader is not
 expected to reproduce 97.07 exactly.
+
+Repetition is not a defect. Extended xhigh deliberation, rechecking, revisited
+alternatives, repeated derivations or drafts, verbosity, long traces, a
+semantic-similarity flag, and output length or an output cap alone must not
+cost points, and must not be relabeled as a loop-behavior, usability, or
+technical-reasoning deduction. Only a demonstrated genuine, non-converging
+loop is a failure mode; wrong conclusions, unsupported claims, missed explicit
+requirements, and failed corrections remain assessable. `score-reasoning.py`
+enforces this for new grades: any applicable dimension docked below full credit
+requires a per-case `deduction_justifications` entry naming a defect category
+with quoted evidence; `loop_behavior` may be docked only for a genuine-loop
+category, and genuine-loop categories may dock only `loop_behavior`. The
+`confirmed_reasoning_loop` cap requires such a genuine-loop record, and the
+32,768-exhaustion cap requires a recorded missing or unusable final answer; a
+list of such findings that omits the required `case_id` fails the grade. The
+frozen hard-loop detector thresholds are unchanged, so real loops are still
+caught.
 Every result must record its execution profile. A three-user result should
 report the 3-running, 2-running, and 1-running phases separately because a
 short case such as C6 naturally ends the second three-request interval early.
@@ -306,4 +328,9 @@ The public material was derived from these retained sources:
 The public versions add portable CLI defaults, replay/dry-run modes, corrected
 response-field extraction, strict gates, and the long-run acknowledgement.
 Prompts, schemas, rubrics, expected conclusions, and test thresholds are not
-tuned to a new run.
+tuned to a new run. The single recorded exception is the reasoning grading
+policy: the current public rubric carries the named `genuine-loop-only-v1`
+clarification, which removes repetition/length as a detractor without changing
+any weight, scale, fatal cap, prompt, or threshold. Both rubric copies and both
+protocol copies state it, and the anonymizer exports it inside every grading
+packet.

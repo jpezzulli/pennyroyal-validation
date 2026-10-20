@@ -18,6 +18,20 @@
     "confirmed_reasoning_loop": 20,
     "repetitive_32768_exhaustion_without_usable_answer": 10
   },
+  "loop_policy": {
+    "version": "genuine-loop-only-v1",
+    "rule": "Extended or repetitive xhigh deliberation is not a quality detractor. Rechecking, revisited alternatives, repeated derivations or drafts, verbosity, long reasoning traces, semantic-similarity flags, and output length or an output cap alone must not reduce any dimension and must not be relabeled as an efficiency, usability, or technical-reasoning deduction. Only a demonstrated genuine, non-converging loop may reduce loop_behavior. Actual incorrect conclusions, unsupported claims, missed explicit requirements, and failed corrections remain assessable. A justification entry may only accompany an actual deduction, and every guarded fatal cap must name the case_id whose own docked dimension supplies the supporting category and quoted evidence.",
+    "justification_field": "deduction_justifications",
+    "loop_sensitive_dimensions": ["loop_behavior", "technical_reasoning", "final_answer_usability"],
+    "substantive_defect_categories": ["incorrect_final_conclusion", "unsupported_claim", "missed_explicit_requirement", "failed_correction", "incomplete_proof", "missing_or_unusable_final_answer"],
+    "genuine_loop_categories": ["non_converging_repetition", "identical_block_repeat", "identical_sentence_repeat"],
+    "non_detractors": ["repetition", "verbosity", "output_length", "output_cap_exhaustion", "reconsideration", "revisited_alternatives", "repeated_derivation", "semantic_similarity_flag", "loop_similarity_flag"],
+    "cap_requirements": {
+      "confirmed_reasoning_loop": "must name the case_id it applies to and be supported on that SAME case by a docked loop_behavior citing a genuine_loop_categories value with quoted evidence; a similarity flag, token count, or output cap alone is not confirmation of looping",
+      "repetitive_32768_exhaustion_without_usable_answer": "must name the case_id it applies to and be supported on that SAME case by a docked final_answer_usability citing missing_or_unusable_final_answer with quoted evidence; output length or cap exhaustion alone is not a loop finding"
+    },
+    "historical_note": "Grades locked before this correction may record loop-efficiency or length deductions under the superseded rule. Re-score them with score-reasoning.py --legacy-loop-policy; archived numeric results are never rewritten."
+  },
   "qualitative_blinding": {
     "include": ["case text", "opaque candidate/run ID", "complete reasoning text", "complete visible answer", "complete C8 transcript"],
     "exclude": ["runtime identity", "execution order", "token counts", "timing", "throughput", "finish reason", "loop flags", "termination reason", "server/API metadata"],

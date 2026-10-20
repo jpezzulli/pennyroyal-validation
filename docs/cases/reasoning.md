@@ -34,6 +34,34 @@ tokens, timing, runtime identity, or loop flags are revealed. Mechanical caps
 are 35 for a case-specific fatal error, 20 for a confirmed reasoning loop, and
 10 for repetitive 32,768-token exhaustion without a usable answer.
 
+### Repetition is not a defect (genuine-loop-only policy)
+
+Extended or repetitive xhigh deliberation is not a quality detractor.
+Rechecking, revisited alternatives, repeated derivations or drafts, verbosity,
+long reasoning traces, semantic-similarity flags, and output length or an
+output cap alone must not reduce any dimension, and must not be smuggled into
+loop-behavior, technical-reasoning, or final-answer-usability deductions. Only
+a demonstrated genuine loop is a failure mode: repetition that never converges
+and prevents a usable conclusion. A similarity flag, an output length, or an
+output cap by itself is not confirmation of looping.
+
+Still fully assessable are actual defects: incorrect final conclusions,
+unsupported claims, missed explicit requirements, failed corrections, and
+genuine non-converging loops. `score-reasoning.py` enforces this for new
+grades: any applicable dimension scored below 4 requires a per-case
+`deduction_justifications` entry naming a defect category with quoted
+evidence. A docked `loop_behavior` may cite only a genuine-loop category, so
+an answer defect can never lower loop behavior; and a genuine-loop category
+may dock only `loop_behavior`, so looping can never be relabeled as a
+deduction elsewhere. The `confirmed_reasoning_loop` cap requires such a
+genuine-loop record, and the 32,768-exhaustion cap requires a recorded missing
+or unusable final answer; each guarded cap must also carry the `case_id` it
+applies to and be supported by that same case's docked dimension, so a cap can
+never borrow evidence from an unrelated case. Grades locked before this
+correction (for example the archived 2026-08-02 DSpark-4 grade) recorded
+loop-efficiency deductions under the superseded rule; they are re-scored with
+`--legacy-loop-policy` and their published numbers are never rewritten.
+
 ## Case library
 
 ### C1: Tunnel latency diagnosis
@@ -130,8 +158,10 @@ are 35 for a case-specific fatal error, 20 for a confirmed reasoning loop, and
   inconsistent duplicates, request-ID substitution, or money loss.
 - Evaluator boundary: different SQL primitives are acceptable if they preserve
   the same ownership, fingerprint, locking, and durable-outcome invariants.
-  Excessive length can hide an otherwise correct design but is graded
-  separately from correctness.
+  Excessive length can hide an otherwise correct design, but length,
+  repetition, or reconsideration alone is not a deduction; grade the design on
+  its merits and reserve loop-behavior deductions for a genuine, non-converging
+  loop.
 
 ### C6: Release decision with distractions
 
@@ -188,6 +218,10 @@ are 35 for a case-specific fatal error, 20 for a confirmed reasoning loop, and
 The rubric is deliberately human-reviewed. It does not promise that another
 grader will reproduce an old decimal exactly. Literal operational facts,
 finish state, loop detection, and fatal caps are applied only after qualitative
-scores are locked. A long but correct answer may lose loop-efficiency or
-usability points without becoming a technical failure; a concise unsafe answer
-does not escape a fatal cap.
+scores are locked. Under the current contract, a long but correct answer does
+not lose loop-behavior, usability, or technical-reasoning points merely for its
+length, repetition, or reconsideration; only a demonstrated genuine loop does,
+and the grade must record that evidence. A concise unsafe answer does not
+escape a fatal cap. Reports published before this correction describe
+loop-efficiency deductions made under the superseded rule; those archived
+numbers stay as published and are not restated here.

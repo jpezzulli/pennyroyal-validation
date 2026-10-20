@@ -14,6 +14,31 @@ def load_suite(path):
     return module
 
 
+def grading_guidance(rubric):
+    """Return the grading contract carried by every exported packet."""
+    policy = rubric.get("loop_policy") or {}
+    field = policy.get("justification_field", "deduction_justifications")
+    return {
+        "scale": rubric.get("scale"),
+        "loop_policy": policy,
+        "required_justification_field": field,
+        "loop_penalties": (
+            "Repetition, extended or revisited deliberation, verbosity, long "
+            "reasoning traces, semantic-similarity flags, and output length or "
+            "cap exhaustion are not deductions on their own. Every dimension "
+            f"scored below 4 must record a defect category and quoted evidence "
+            f"in {field}. loop_behavior may be docked only for a genuine-loop "
+            "category; substantive answer defects belong in their own "
+            "dimension. Incorrect conclusions, unsupported claims, missed "
+            "explicit requirements, and failed corrections remain assessable. "
+            "A guarded cap must carry the case_id it applies to and be supported "
+            "by that same case's docked dimension: loop_behavior for a "
+            "genuine-loop category, final_answer_usability for "
+            "missing_or_unusable_final_answer."
+        ),
+    }
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--suite", required=True)
@@ -21,8 +46,13 @@ def main():
     parser.add_argument("--output", required=True)
     parser.add_argument("--candidate-id", default="candidate-blinded")
     parser.add_argument("--run-prefix", default="screen")
+    parser.add_argument(
+        "--rubric",
+        default=str(Path(__file__).resolve().parent / "cases/reasoning-rubric.json"),
+    )
     args = parser.parse_args()
     suite = load_suite(Path(args.suite))
+    guidance = grading_guidance(json.loads(Path(args.rubric).read_text()))
     cases = {case["id"]: case for case in suite.CASES}
     results = [
         json.loads(line) for line in Path(args.results).read_text().splitlines()
@@ -61,6 +91,7 @@ def main():
             "run_id": f"{args.run_prefix}-{index:02d}",
             "case_id": case_id,
             "transcript": transcript,
+            "grading_guidance": guidance,
         })
     Path(args.output).write_text(
         json.dumps(packets, indent=2, ensure_ascii=False) + "\n"

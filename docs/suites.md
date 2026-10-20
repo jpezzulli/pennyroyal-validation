@@ -90,8 +90,13 @@ python3 validation/run-reasoning.py --dry-run
 python3 validation/run-reasoning.py \
   --replay validation/fixtures/reasoning-replay.jsonl
 python3 validation/score-reasoning.py \
-  --grade validation/fixtures/reasoning-dspark4-grade.json
+  --grade validation/fixtures/reasoning-dspark4-grade.json \
+  --legacy-loop-policy
 ```
+
+The archived grade predates the genuine-loop-only correction, so its
+repetition-based loop deductions are accepted only through that explicit flag;
+no archived number is rewritten.
 
 Collect a new run:
 
@@ -263,6 +268,23 @@ Reasoning collection preserves request JSON, timestamped SSE, reconstructed
 reasoning/content, usage, finish state, timings, errors, loop events, a run
 manifest, and the blinded grading packet. Reasoning scores use the frozen
 0-to-4 rubric dimensions and case weights; reviewer judgment is required.
+
+Repetition is not a defect under the current contract
+(`genuine-loop-only-v1`): extended xhigh deliberation, rechecking, revisited
+alternatives, repeated derivations or drafts, verbosity, long traces, a
+semantic-similarity flag, and output length or an output cap alone must not
+reduce any dimension. Only a demonstrated genuine, non-converging loop may
+cost loop-behavior points or support the confirmed-loop cap; incorrect
+conclusions, unsupported claims, missed explicit requirements, and failed
+corrections remain assessable. Each exported grading packet carries this
+contract, and `score-reasoning.py` rejects new grades that dock any applicable
+dimension without a recorded defect category and quoted evidence: a docked
+`loop_behavior` must cite a genuine-loop category, and genuine-loop categories
+may dock only `loop_behavior`. Each guarded cap must carry the `case_id` it
+applies to and be supported by that same case's docked dimension; a cap cannot
+borrow evidence from an unrelated case or from a dimension left at full credit.
+The frozen hard-loop detector thresholds are
+unchanged.
 
 Tool collection preserves every model turn, tool call/result, final text,
 invocation identity, errors, and a manifest. Report at least schedule integrity,

@@ -401,7 +401,8 @@ def replay_manifest(path, suite):
         "gate_passed": len(measured) == 9 and actual == expected and not errors,
         "grading": (
             "Responses require blinded qualitative grading with cases/reasoning-rubric.json; "
-            "use score-reasoning.py after scores are locked."
+            "repetition and long xhigh traces are not deductions under the "
+            "genuine-loop-only-v1 policy; use score-reasoning.py after scores are locked."
         ),
     }
     return manifest
@@ -586,7 +587,10 @@ def main():
         "reported_token_source": "chat-completions usage.completion_tokens",
         "request_plan": plan,
         "results": "results.jsonl",
-        "grading": "blinded qualitative review required; see cases/reasoning-rubric.json",
+        "grading": (
+            "blinded qualitative review required; see cases/reasoning-rubric.json "
+            "(genuine-loop-only-v1)"
+        ),
     })
     return 0
 

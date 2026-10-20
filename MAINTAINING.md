@@ -37,6 +37,13 @@ the contracts below.
   failure, thermal stop, or invalid schedule.
 - Historical results are not silently rescored or rewritten. A later
   interpretation is a new record that cites the original evidence.
+- Reasoning grading follows the named rubric policy `genuine-loop-only-v1`:
+  repetition and long xhigh deliberation are not detractors. Any applicable
+  dimension docked below full credit requires a recorded defect category and
+  quoted evidence, and only a demonstrated genuine loop may justify a
+  loop-behavior deduction (looping cannot be charged against another dimension).
+  Grades locked before that correction keep their published numbers and are
+  re-scored only with `score-reasoning.py --legacy-loop-policy`.
 - Raw evidence and interpretation remain separate. Raw requests, responses,
   streams, telemetry, manifests, and provenance are not edited to agree with a
   report.
