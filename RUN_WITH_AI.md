@@ -28,6 +28,13 @@ need to configure the tested local model as your own conversational backend.
   `GET /v1/models` check are allowed during preparation.
 - Preserve the first attempt of every live run. Never hide a failure with an
   automatic retry.
+- When grading reasoning packets, follow the guidance embedded in the packet:
+  repetition, extended xhigh deliberation, verbosity, long traces, similarity
+  flags, and output length or cap exhaustion are not deductions on their own.
+  Any applicable dimension scored below 4 requires a `deduction_justifications`
+  entry naming a defect category with quoted evidence; `loop_behavior` may be
+  docked only for a genuine-loop category, and genuine-loop categories may dock
+  only `loop_behavior`. `score-reasoning.py` enforces this for new grades.
 
 ## 1. Obtain and identify the repository
 

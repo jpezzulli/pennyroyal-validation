@@ -82,6 +82,47 @@ def check_case_contracts() -> list[str]:
     return errors
 
 
+def check_reasoning_grading_contract() -> list[str]:
+    errors = []
+    rubric_paths = (
+        ROOT / "validation/cases/reasoning-rubric.json",
+        ROOT / "reasoning/design/rubric.json",
+    )
+    protocol_paths = (
+        ROOT / "validation/cases/reasoning-protocol.md",
+        ROOT / "reasoning/design/protocol.md",
+    )
+    rubrics = []
+    for path in rubric_paths:
+        policy = json.loads(path.read_text(encoding="utf-8")).get("loop_policy")
+        if not isinstance(policy, dict):
+            errors.append(f"{path.relative_to(ROOT)} has no loop_policy block")
+            continue
+        rubrics.append((path, policy))
+        if policy.get("version") != "genuine-loop-only-v1":
+            errors.append(f"{path.relative_to(ROOT)} loop_policy is not genuine-loop-only-v1")
+        for field in (
+            "substantive_defect_categories",
+            "genuine_loop_categories",
+            "non_detractors",
+        ):
+            if not policy.get(field):
+                errors.append(f"{path.relative_to(ROOT)} loop_policy missing {field}")
+        dimensions = set(json.loads(path.read_text(encoding="utf-8"))["dimension_weights"])
+        if set(policy["genuine_loop_categories"]) & set(policy["substantive_defect_categories"]):
+            errors.append(f"{path.relative_to(ROOT)} loop and substantive categories overlap")
+        if "loop_behavior" not in dimensions:
+            errors.append(f"{path.relative_to(ROOT)} rubric lacks loop_behavior dimension")
+    if len(rubrics) == 2 and rubrics[0][1] != rubrics[1][1]:
+        errors.append("reasoning rubric loop_policy copies differ")
+    for path in protocol_paths:
+        if "Repetition is not a defect" not in path.read_text(encoding="utf-8"):
+            errors.append(
+                f"{path.relative_to(ROOT)} does not state the repetition-is-not-a-defect rule"
+            )
+    return errors
+
+
 def check_curated_runs() -> list[str]:
     errors = []
     payload = json.loads((ROOT / "results/runs.json").read_text(encoding="utf-8"))
@@ -117,6 +158,7 @@ def main() -> int:
     errors.extend(check_json())
     errors.extend(check_links())
     errors.extend(check_case_contracts())
+    errors.extend(check_reasoning_grading_contract())
     errors.extend(check_curated_runs())
     if errors:
         for error in errors:
